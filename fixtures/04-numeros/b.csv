@@ -1,0 +1,7 @@
+sku,descripcion,cantidad
+N-1,Entero,10
+N-2,Decimal,10.5
+N-3,Negativo,-3.0
+N-4,Cero,0.0
+N-10,Espacios,8
+N-11,Cero negativo,0

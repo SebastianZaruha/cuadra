@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "delimitador_a": ",",
+  "delimitador_b": ",",
+  "exportacion_completa_permitida": false,
+  "resumen": {
+    "iguales": 1,
+    "modificados": 0,
+    "solo_en_A": 1,
+    "solo_en_B": 1,
+    "bloqueados": 0,
+    "pendientes": 2,
+    "resueltos": 1
+  },
+  "filas": [
+    {
+      "tipo": "solo_en_B",
+      "identificador": "AB",
+      "descripcion": "Otra",
+      "cantidad": "2",
+      "fila_b": 3,
+      "estado": "pendiente",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "AB-1",
+      "descripcion": "Pieza",
+      "cantidad": "1",
+      "fila_a": 2,
+      "fila_b": 2,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "solo_en_A",
+      "identificador": "ab",
+      "descripcion": "Otra",
+      "cantidad": "2",
+      "fila_a": 3,
+      "estado": "pendiente",
+      "decision": null
+    }
+  ],
+  "errores": [],
+  "errores_decision": []
+}

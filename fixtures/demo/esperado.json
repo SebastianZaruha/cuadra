@@ -1,0 +1,104 @@
+{
+  "ok": true,
+  "delimitador_a": ",",
+  "delimitador_b": ";",
+  "exportacion_completa_permitida": false,
+  "resumen": {
+    "iguales": 3,
+    "modificados": 2,
+    "solo_en_A": 2,
+    "solo_en_B": 1,
+    "bloqueados": 0,
+    "pendientes": 5,
+    "resueltos": 3
+  },
+  "filas": [
+    {
+      "tipo": "iguales",
+      "identificador": "LC-100",
+      "descripcion": "Martillo de uña 16 oz",
+      "cantidad": "12",
+      "fila_a": 2,
+      "fila_b": 2,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "modificados",
+      "identificador": "LC-110",
+      "descripcion_a": "Destornillador plano 6 mm",
+      "cantidad_a": "20",
+      "descripcion_b": "Destornillador plano 6 mm",
+      "cantidad_b": "18",
+      "descripcion_difiere": false,
+      "cantidad_difiere": true,
+      "fila_a": 3,
+      "fila_b": 3,
+      "estado": "pendiente",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "LC-120",
+      "descripcion": "Cinta métrica 5 m",
+      "cantidad": "7",
+      "fila_a": 4,
+      "fila_b": 4,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "solo_en_A",
+      "identificador": "LC-130",
+      "descripcion": "Guantes de algodón",
+      "cantidad": "15",
+      "fila_a": 5,
+      "estado": "pendiente",
+      "decision": null
+    },
+    {
+      "tipo": "modificados",
+      "identificador": "LC-140",
+      "descripcion_a": "Bombilla LED 9 W",
+      "cantidad_a": "40",
+      "descripcion_b": "Bombilla LED 9W",
+      "cantidad_b": "40",
+      "descripcion_difiere": true,
+      "cantidad_difiere": false,
+      "fila_a": 6,
+      "fila_b": 5,
+      "estado": "pendiente",
+      "decision": null
+    },
+    {
+      "tipo": "solo_en_A",
+      "identificador": "LC-150",
+      "descripcion": "Candado latón 30 mm",
+      "cantidad": "8",
+      "fila_a": 7,
+      "estado": "pendiente",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "LC-160",
+      "descripcion": "Broca para madera 8 mm",
+      "cantidad": "11",
+      "fila_a": 8,
+      "fila_b": 7,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "solo_en_B",
+      "identificador": "LC-170",
+      "descripcion": "Nivel de burbuja 40 cm",
+      "cantidad": "5",
+      "fila_b": 6,
+      "estado": "pendiente",
+      "decision": null
+    }
+  ],
+  "errores": [],
+  "errores_decision": []
+}

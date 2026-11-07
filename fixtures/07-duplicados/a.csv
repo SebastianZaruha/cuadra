@@ -1,0 +1,4 @@
+sku,descripcion,cantidad
+DUP,Uno,1
+DUP,Dos,2
+UNICO,Solo,3

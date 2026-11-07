@@ -1,0 +1,20 @@
+# cuadra_schema=1
+# cuadra_tipo=historial
+# cuadra_exportacion=COMPLETA
+# cuadra_pendientes=0
+# cuadra_bloqueados=0
+# cuadra_excluidas=1
+marca_exportacion,fichero,fila,identificador,descripcion,cantidad_original,categoria,decision,cantidad_decidida,motivo,en_inventario
+COMPLETA,A,2,LC-100,Martillo de uña 16 oz,12,iguales,,12,,si
+COMPLETA,A,3,LC-110,Destornillador plano 6 mm,20,modificados,elegir_B,18,El conteo de tienda es el más reciente.,si
+COMPLETA,A,4,LC-120,Cinta métrica 5 m,7,iguales,,7,,si
+COMPLETA,A,5,LC-130,Guantes de algodón,15,solo_en_A,elegir_A,15,Sigue en el depósito y se conserva.,si
+COMPLETA,A,6,LC-140,Bombilla LED 9 W,40,modificados,elegir_A,40,Unificamos la descripción con el depósito.,si
+COMPLETA,A,7,LC-150,Candado latón 30 mm,8,solo_en_A,excluir,,Muestra dañada; no entra al inventario final.,no
+COMPLETA,A,8,LC-160,Broca para madera 8 mm,11,iguales,,11,,si
+COMPLETA,B,2,LC-100,Martillo de uña 16 oz,12,iguales,,12,,si
+COMPLETA,B,3,LC-110,Destornillador plano 6 mm,18,modificados,elegir_B,18,El conteo de tienda es el más reciente.,si
+COMPLETA,B,4,LC-120,Cinta métrica 5 m,7,iguales,,7,,si
+COMPLETA,B,5,LC-140,Bombilla LED 9W,40,modificados,elegir_A,40,Unificamos la descripción con el depósito.,si
+COMPLETA,B,6,LC-170,Nivel de burbuja 40 cm,5,solo_en_B,elegir_B,5,Alta nueva registrada en tienda.,si
+COMPLETA,B,7,LC-160,Broca para madera 8 mm,11,iguales,,11,,si

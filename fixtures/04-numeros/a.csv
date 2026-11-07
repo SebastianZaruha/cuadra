@@ -1,0 +1,14 @@
+sku,descripcion,cantidad
+N-1,Entero,10
+N-2,Decimal,10.50
+N-3,Negativo,-3
+N-4,Cero,0
+N-5,Vacio,
+N-6,Coma decimal,"1,5"
+N-7,Miles,1.000
+N-8,Muchos decimales,1.23456
+N-9,Texto,abc
+N-10,Espacios,  8
+N-11,Cero negativo,-0
+N-12,Ceros izquierda,01
+N-13,Signo mas,+5

@@ -1,0 +1,10 @@
+sku,descripcion,cantidad
+=CMD,Tornillo,1
++SKU,Tuerca,2
+-SKU,Arandela,3
+@SUM,Clavo,4
+	TABID,Perno,6
+SAFE,=cmd,5
+SAFE3,"=1",1
+SAFE4,Normal,=1+1
+SAFE2,Normal,-2

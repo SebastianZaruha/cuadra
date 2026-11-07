@@ -1,0 +1,18 @@
+{
+  "ok": false,
+  "delimitador_a": ",",
+  "delimitador_b": ",",
+  "exportacion_completa_permitida": false,
+  "resumen": null,
+  "filas": [],
+  "errores": [
+    {
+      "codigo": "columna_inexistente",
+      "mensaje": "La columna «cantidad» mapeada como cantidad no existe en el fichero A. Columnas encontradas: descripcion, sku.",
+      "fichero": "A",
+      "fila": 1,
+      "columna": "cantidad"
+    }
+  ],
+  "errores_decision": []
+}

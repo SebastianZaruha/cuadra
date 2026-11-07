@@ -1,0 +1,89 @@
+{
+  "ok": true,
+  "delimitador_a": ",",
+  "delimitador_b": ",",
+  "exportacion_completa_permitida": false,
+  "resumen": {
+    "iguales": 1,
+    "modificados": 0,
+    "solo_en_A": 0,
+    "solo_en_B": 1,
+    "bloqueados": 3,
+    "pendientes": 1,
+    "resueltos": 1
+  },
+  "filas": [
+    {
+      "tipo": "solo_en_B",
+      "identificador": "OTRO",
+      "descripcion": "Extra",
+      "cantidad": "4",
+      "fila_b": 4,
+      "estado": "pendiente",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "UNICO",
+      "descripcion": "Solo",
+      "cantidad": "3",
+      "fila_a": 4,
+      "fila_b": 3,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 2,
+      "identificador": "DUP",
+      "descripcion_cruda": "Uno",
+      "cantidad_cruda": "1",
+      "errores": [
+        {
+          "codigo": "identificador_duplicado",
+          "mensaje": "Identificador «DUP» duplicado en el fichero A (filas 2, 3). No se fusionan ni se comparan.",
+          "fichero": "A",
+          "fila": 2,
+          "columna": "sku"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 3,
+      "identificador": "DUP",
+      "descripcion_cruda": "Dos",
+      "cantidad_cruda": "2",
+      "errores": [
+        {
+          "codigo": "identificador_duplicado",
+          "mensaje": "Identificador «DUP» duplicado en el fichero A (filas 2, 3). No se fusionan ni se comparan.",
+          "fichero": "A",
+          "fila": 3,
+          "columna": "sku"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "B",
+      "fila": 2,
+      "identificador": "DUP",
+      "descripcion_cruda": "Otro",
+      "cantidad_cruda": "9",
+      "errores": [
+        {
+          "codigo": "clave_bloqueada_en_el_otro",
+          "mensaje": "No se compara: en el fichero A la clave «DUP» está bloqueada (duplicado en las filas 2, 3).",
+          "fichero": "B",
+          "fila": 2,
+          "columna": "sku"
+        }
+      ]
+    }
+  ],
+  "errores": [],
+  "errores_decision": []
+}
