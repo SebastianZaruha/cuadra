@@ -36,6 +36,20 @@ import type {
   Resultado,
 } from "./tipos.ts"
 
+function LimitesAyuda({ limites }: { limites: Limites }) {
+  return (
+    <span className="limites">
+      <button type="button" className="pildora text-sm" aria-describedby="texto-limites">
+        Límites
+      </button>
+      <span id="texto-limites" role="tooltip" className="globo">
+        {limites.max_bytes.toLocaleString("es")} bytes y {limites.max_filas.toLocaleString("es")} filas por fichero.{" "}
+        {limites.max_decimales} decimales. Sesión versión {limites.schema_version}.
+      </span>
+    </span>
+  )
+}
+
 function armarFichero(
   base: { nombre: string; texto: string | null; contenidoBase64: string | null },
   inspeccion: Inspeccion,
@@ -320,22 +334,18 @@ export default function App() {
       <a href="#cuadre" className="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:bg-card focus:p-2">
         Saltar al cuadre
       </a>
-      <header className="cristal flex flex-wrap items-end justify-between gap-4 p-5 sm:p-6">
-        <div className="grid gap-2">
+      <header className="cristal flex flex-wrap items-end justify-between gap-4 px-5 py-4 sm:px-7 sm:py-5">
+        <div className="grid gap-1">
         <p className="ojo">Inventario</p>
-        <h1 className="titulo text-4xl leading-none sm:text-5xl">Cuadra</h1>
-        <p className="max-w-2xl text-base text-muted-foreground">
-          Compara dos exportaciones de inventario y deja a la vista lo que cambió, lo que falta y lo que no se puede
-          emparejar con seguridad. No adivina claves ni sustituye a un ERP.
+        <h1 className="titulo text-4xl leading-none">Cuadra</h1>
+        <p className="max-w-xl text-sm text-muted-foreground">
+          Compara dos inventarios. La clave es exacta. No adivina ni sustituye a un ERP.
         </p>
-        {limites ? (
-          <p className="text-sm">
-            Límites: {limites.max_bytes.toLocaleString("es")} bytes y {limites.max_filas.toLocaleString("es")} filas por
-            fichero. Como mucho {limites.max_decimales} decimales. Sesión versión {limites.schema_version}.
-          </p>
-        ) : null}
         </div>
-        <TemaControl preferencia={preferencia} onCambio={elegirTema} />
+        <div className="flex items-center gap-2">
+          {limites ? <LimitesAyuda limites={limites} /> : null}
+          <TemaControl preferencia={preferencia} onCambio={elegirTema} />
+        </div>
       </header>
 
       {falloLimites ? (
@@ -357,8 +367,8 @@ export default function App() {
         </Alert>
       ) : null}
 
-      <div aria-busy={ocupado} className="grid gap-6">
-        <section className="grid gap-3" aria-labelledby="titulo-ficheros">
+      <div aria-busy={ocupado} className={resultado?.ok ? "lienzo con-resultado" : "lienzo"}>
+        <section className="zona-ficheros grid gap-3" aria-labelledby="titulo-ficheros">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="titulo-ficheros" className="titulo text-2xl">
               Ficheros
@@ -370,7 +380,7 @@ export default function App() {
               Todavía no hay ficheros. Sube la exportación A y la B, o carga la demostración de Ferretería La Cuadra.
             </p>
           ) : null}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rejilla-ficheros grid gap-4 lg:grid-cols-2">
             <PanelFichero
               lado="A"
               fichero={ficheroA}
@@ -438,7 +448,7 @@ export default function App() {
         </section>
 
         {resultado?.ok && resultado.resumen ? (
-          <>
+          <div className="zona-resultado grid gap-4">
             <Graficas
               filas={resultado.filas}
               resumen={resultado.resumen}
@@ -464,6 +474,10 @@ export default function App() {
               onDecision={(decision) => void alDecision(decision)}
               guardando={ocupado}
             />
+          </div>
+        ) : null}
+        {resultado?.ok && resultado.resumen ? (
+          <div className="zona-cierre">
             <Cierre
               resumen={resultado.resumen}
               completaPermitida={resultado.exportacion_completa_permitida}
@@ -473,7 +487,7 @@ export default function App() {
               onAbrir={(archivo) => void alAbrir(archivo)}
               enlaces={enlaces}
             />
-          </>
+          </div>
         ) : null}
       </div>
       <footer className="pb-8 text-sm text-muted-foreground">

@@ -1,10 +1,10 @@
 import type { Fila, Filtro, Resumen } from "../tipos.ts"
 
 const SEGMENTOS = [
-  { id: "iguales" as const, etiqueta: "Iguales", color: "var(--color-iguales)", patron: "solido" },
-  { id: "modificados" as const, etiqueta: "Modificadas", color: "var(--color-modificadas)", patron: "rayas" },
-  { id: "solo_en_A" as const, etiqueta: "Solo en A", color: "var(--color-solo-a)", patron: "puntos" },
-  { id: "solo_en_B" as const, etiqueta: "Solo en B", color: "var(--color-solo-b)", patron: "lineas" },
+  { id: "iguales" as const, etiqueta: "Iguales" },
+  { id: "modificados" as const, etiqueta: "Modificadas" },
+  { id: "solo_en_A" as const, etiqueta: "Solo en A" },
+  { id: "solo_en_B" as const, etiqueta: "Solo en B" },
 ]
 
 type Props = {
@@ -57,7 +57,7 @@ export function Graficas({ filas, resumen, filtro, busqueda, onFiltro, onClave }
                         className="inline-flex items-center gap-2"
                         onClick={() => onFiltro(filtro === item.id ? "todas" : item.id)}
                       >
-                        <Marca color={item.color} patron={item.patron} />
+                        <span aria-hidden="true" className={`marca marca-${item.id}`} />
                         {item.etiqueta}
                       </button>
                     </th>
@@ -77,11 +77,8 @@ export function Graficas({ filas, resumen, filtro, busqueda, onFiltro, onClave }
           <div className="progreso-pista flex" role="group" aria-labelledby="texto-progreso">
             <button
               type="button"
-              className="h-full"
-              style={{
-                width: conflictos.length ? `${(conflictosResueltos / conflictos.length) * 100}%` : "0%",
-                background: "var(--color-iguales)",
-              }}
+              className="progreso-hecho h-full"
+              style={{ width: conflictos.length ? `${(conflictosResueltos / conflictos.length) * 100}%` : "0%" }}
               aria-pressed={filtro === "resueltos"}
               onClick={() => onFiltro(filtro === "resueltos" ? "todas" : "resueltos")}
             >
@@ -89,10 +86,9 @@ export function Graficas({ filas, resumen, filtro, busqueda, onFiltro, onClave }
             </button>
             <button
               type="button"
-              className="h-full"
+              className="progreso-falta h-full"
               style={{
                 width: conflictos.length ? `${((conflictos.length - conflictosResueltos) / conflictos.length) * 100}%` : "100%",
-                background: "var(--color-modificadas)",
               }}
               aria-pressed={filtro === "pendientes"}
               onClick={() => onFiltro(filtro === "pendientes" ? "todas" : "pendientes")}
@@ -140,13 +136,7 @@ export function Graficas({ filas, resumen, filtro, busqueda, onFiltro, onClave }
                     >
                       <span className="truncate font-medium">{item.identificador}</span>
                       <span className="barra-pista">
-                        <span
-                          className="block h-full rounded-full"
-                          style={{
-                            width: `${item.porcentaje}%`,
-                            background: "repeating-linear-gradient(135deg, var(--color-modificadas), var(--color-modificadas) 4px, color-mix(in srgb, var(--color-modificadas) 55%, white) 4px, color-mix(in srgb, var(--color-modificadas) 55%, white) 7px)",
-                          }}
-                        />
+                        <span className="barra-diff" style={{ width: `${item.porcentaje}%` }} />
                       </span>
                       <span className="nums">{item.texto}</span>
                     </button>
@@ -185,18 +175,6 @@ export function Graficas({ filas, resumen, filtro, busqueda, onFiltro, onClave }
   )
 }
 
-function Marca({ color, patron }: { color: string; patron: string }) {
-  const fondo =
-    patron === "rayas"
-      ? `repeating-linear-gradient(135deg, ${color}, ${color} 3px, transparent 3px, transparent 5px)`
-      : patron === "puntos"
-        ? `radial-gradient(circle, ${color} 1.5px, transparent 1.7px)`
-        : patron === "lineas"
-          ? `repeating-linear-gradient(${color}, ${color} 2px, transparent 2px, transparent 4px)`
-          : color
-  return <span aria-hidden="true" className="inline-block size-3 rounded-full" style={{ background: fondo, color }} />
-}
-
 function Donut({
   resumen,
   filtro,
@@ -209,87 +187,103 @@ function Donut({
   onElegir: (id: (typeof SEGMENTOS)[number]["id"]) => void
 }) {
   const total = SEGMENTOS.reduce((suma, item) => suma + resumen[item.id], 0)
-  const size = 196
+  const size = 188
   const centro = size / 2
-  const radio = 74
-  const hueco = 46
-  const arcos = arcosDe(resumen, total)
+  const radio = 68
+  const circunferencia = 2 * Math.PI * radio
+  const partes = trazosDe(resumen, total, circunferencia)
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="group" aria-label={`Distribución: ${texto}`}>
       <defs>
-        <pattern id="rayas" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
-          <rect width="6" height="6" fill="var(--color-modificadas)" />
-          <rect width="3" height="6" fill="color-mix(in srgb, var(--color-modificadas) 55%, white)" />
+        <linearGradient id="grad-sage" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#e7f6ee" />
+          <stop offset="100%" stopColor="#6f977f" />
+        </linearGradient>
+        <linearGradient id="grad-peach" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stopColor="#f8d9cc" />
+          <stop offset="100%" stopColor="#e0a48a" />
+        </linearGradient>
+        <linearGradient id="grad-sky" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#e4f1f8" />
+          <stop offset="100%" stopColor="#8aafc9" />
+        </linearGradient>
+        <linearGradient id="grad-sand" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f8edd8" />
+          <stop offset="100%" stopColor="#d4b483" />
+        </linearGradient>
+        <pattern id="tex-sage" width="6" height="6" patternUnits="userSpaceOnUse">
+          <rect width="6" height="6" fill="#6f977f" />
+          <path d="M0 6 L6 0" stroke="#143026" strokeWidth="1.2" />
         </pattern>
-        <pattern id="puntos" width="7" height="7" patternUnits="userSpaceOnUse">
-          <rect width="7" height="7" fill="var(--color-solo-a)" />
-          <circle cx="2" cy="2" r="1.2" fill="white" opacity="0.7" />
+        <pattern id="tex-peach" width="6" height="6" patternUnits="userSpaceOnUse">
+          <rect width="6" height="6" fill="#e0a48a" />
+          <path d="M0 6 L6 0" stroke="#5c2e22" strokeWidth="1.2" />
         </pattern>
-        <pattern id="lineas" width="6" height="6" patternUnits="userSpaceOnUse">
-          <rect width="6" height="6" fill="var(--color-solo-b)" />
-          <rect y="3" width="6" height="2" fill="white" opacity="0.45" />
+        <pattern id="tex-sky" width="6" height="6" patternUnits="userSpaceOnUse">
+          <rect width="6" height="6" fill="#8aafc9" />
+          <circle cx="2" cy="2" r="1" fill="#102033" />
         </pattern>
+        <pattern id="tex-sand" width="6" height="6" patternUnits="userSpaceOnUse">
+          <rect width="6" height="6" fill="#d4b483" />
+          <path d="M0 3 H6" stroke="#4a3516" strokeWidth="1.2" />
+        </pattern>
+        <filter id="brillo-dona" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       {total === 0 ? (
-        <circle cx={centro} cy={centro} r={radio} fill="none" stroke="currentColor" opacity="0.2" strokeWidth="22" />
+        <circle cx={centro} cy={centro} r={radio} fill="none" stroke="currentColor" opacity="0.25" strokeWidth="16" />
       ) : (
-        arcos.map((item) => {
-          const relleno = item.patron === "solido" ? item.color : `url(#${item.patron})`
-          return (
-            <path
-              key={item.id}
-              d={item.valor === total ? anillo(centro, radio, hueco) : sector(centro, radio, hueco, item.inicio, item.fin)}
-              fill={relleno}
-              fillRule="evenodd"
-              stroke="var(--cristal-solido)"
-              strokeWidth="1.5"
-              style={{ cursor: "pointer" }}
-              role="button"
-              tabIndex={0}
-              aria-label={`${item.etiqueta}, ${item.valor}. Filtrar la tabla.`}
-              aria-pressed={filtro === item.id}
-              onClick={() => onElegir(item.id)}
-              onKeyDown={(evento) => {
-                if (evento.key === "Enter" || evento.key === " ") {
-                  evento.preventDefault()
-                  onElegir(item.id)
-                }
-              }}
-            />
-          )
-        })
+        partes.map((item) => (
+          <circle
+            key={item.id}
+            className={`seg-${item.id}`}
+            cx={centro}
+            cy={centro}
+            r={radio}
+            fill="none"
+            strokeWidth="16"
+            strokeLinecap="round"
+            strokeDasharray={item.trazo}
+            transform={`rotate(${item.giro} ${centro} ${centro})`}
+            filter="url(#brillo-dona)"
+            role="button"
+            tabIndex={0}
+            aria-label={`${item.etiqueta}, ${item.valor}. Filtrar la tabla.`}
+            aria-pressed={filtro === item.id}
+            onClick={() => onElegir(item.id)}
+            onKeyDown={(evento) => {
+              if (evento.key === "Enter" || evento.key === " ") {
+                evento.preventDefault()
+                onElegir(item.id)
+              }
+            }}
+          />
+        ))
       )}
-      <text x={centro} y={centro} textAnchor="middle" dominantBaseline="middle" className="nums" fontSize="18" fill="currentColor" style={{ pointerEvents: "none" }}>
+      <text x={centro} y={centro} textAnchor="middle" dominantBaseline="central" className="dona-numero" fontSize="28" fill="currentColor" style={{ pointerEvents: "none" }}>
         {total}
       </text>
     </svg>
   )
 }
 
-function arcosDe(resumen: Resumen, total: number) {
-  let cursor = -Math.PI / 2
+function trazosDe(resumen: Resumen, total: number, circunferencia: number) {
+  const hueco = 0.04
+  let cursor = 0
   return SEGMENTOS.flatMap((item) => {
     const valor = resumen[item.id]
     if (valor === 0 || total === 0) return []
-    const inicio = cursor
-    const fin = cursor + (valor / total) * Math.PI * 2
-    cursor = fin
-    return [{ ...item, valor, inicio, fin }]
+    const fraccion = valor / total
+    const largo = Math.max(fraccion - hueco, 0.03) * circunferencia
+    const giro = cursor * 360 - 90
+    cursor += fraccion
+    return [{ ...item, valor, giro, trazo: `${largo} ${circunferencia - largo}` }]
   })
-}
-
-function anillo(cx: number, r: number, hueco: number): string {
-  return `M ${cx - r} ${cx} a ${r} ${r} 0 1 0 ${r * 2} 0 a ${r} ${r} 0 1 0 ${-r * 2} 0 M ${cx - hueco} ${cx} a ${hueco} ${hueco} 0 1 1 ${hueco * 2} 0 a ${hueco} ${hueco} 0 1 1 ${-hueco * 2} 0`
-}
-
-function sector(cx: number, r: number, hueco: number, inicio: number, fin: number): string {
-  const punto = (angulo: number, radio: number) => [cx + radio * Math.cos(angulo), cx + radio * Math.sin(angulo)]
-  const [x0, y0] = punto(inicio, r)
-  const [x1, y1] = punto(fin, r)
-  const [x2, y2] = punto(fin, hueco)
-  const [x3, y3] = punto(inicio, hueco)
-  const grande = fin - inicio > Math.PI ? 1 : 0
-  return `M ${x0} ${y0} A ${r} ${r} 0 ${grande} 1 ${x1} ${y1} L ${x2} ${y2} A ${hueco} ${hueco} 0 ${grande} 0 ${x3} ${y3} Z`
 }
 
 function escala(cantidad: string): bigint {

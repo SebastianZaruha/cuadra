@@ -36,15 +36,9 @@ export function PanelFichero({ lado, fichero, maxBytes, onArchivo, onDelimitador
       <h2 id={`${base}-titulo`} className="titulo text-xl">
         {titulo}
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        CSV, Excel .xlsx, LibreOffice .ods o JSON. Hasta {maxBytes.toLocaleString("es")} bytes. La clave se compara tal
-        cual, después de recortar espacios.
-      </p>
+      <p className="mt-1 text-sm text-muted-foreground">CSV, Excel, ODS o JSON. Hasta {maxBytes.toLocaleString("es")} bytes.</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <Label
-          htmlFor={`${base}-archivo`}
-          className="w-fit cursor-pointer rounded-full border border-[var(--borde-luz)] bg-[var(--cristal-solido)] px-4 py-2"
-        >
+        <Label htmlFor={`${base}-archivo`} className="pildora inline-flex cursor-pointer items-center">
           Elegir fichero
         </Label>
         <Input
@@ -73,10 +67,10 @@ export function PanelFichero({ lado, fichero, maxBytes, onArchivo, onDelimitador
             <fieldset className="grid gap-2">
               <legend className="text-sm font-medium">Delimitador</legend>
               <p className="text-sm text-muted-foreground">
-                {fichero.origenDelimitador === "detectado"
-                  ? "Detectado en la cabecera."
-                  : fichero.origenDelimitador === "elegido"
-                    ? "Elegido por ti. Cuadra no cambia esta elección en silencio."
+                {fichero.origenDelimitador === "elegido"
+                  ? "Elegido por ti. Cuadra no cambia esta elección en silencio."
+                  : fichero.origenDelimitador === "detectado"
+                    ? "Detectado en la cabecera."
                     : "Hay más de un delimitador en la cabecera. Elige uno para continuar."}
               </p>
               <div className="flex flex-wrap gap-4">
@@ -123,7 +117,13 @@ export function PanelFichero({ lado, fichero, maxBytes, onArchivo, onDelimitador
             </ul>
           ) : null}
           {fichero.columnas.length > 0 ? (
-            <div className="grid gap-3">
+            <details
+              key={`${fichero.nombre}-${fichero.filasDatos}-${fichero.hoja ?? ""}`}
+              className="baldosa px-3 py-2"
+              open={CAMPOS.some((campo) => !fichero.mapeo[campo.campo])}
+            >
+            <summary className="cursor-pointer text-sm font-medium">Columnas y vista previa</summary>
+            <div className="mt-3 grid gap-3">
               {CAMPOS.map(({ campo, etiqueta }) => (
                 <div key={campo} className="grid gap-1.5">
                   <Label htmlFor={`${base}-${campo}`}>{etiqueta}</Label>
@@ -170,6 +170,7 @@ export function PanelFichero({ lado, fichero, maxBytes, onArchivo, onDelimitador
                 </div>
               ) : null}
             </div>
+            </details>
           ) : null}
         </div>
       ) : (
