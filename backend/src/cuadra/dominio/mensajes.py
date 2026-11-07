@@ -20,6 +20,7 @@ def formula(caracter: str) -> str:
         "@": "@",
         "\t": "tabulación",
         "\r": "retorno de carro",
+        "\n": "salto de línea",
     }[caracter]
     return (
         f"La celda empieza por un carácter de fórmula ({nombre}). "
