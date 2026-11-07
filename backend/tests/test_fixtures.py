@@ -17,7 +17,13 @@ def test_fixture_coincide_con_el_oraculo(nombre: str):
         csv_b,
         mapeo_a=entrada["mapeo_a"],
         mapeo_b=entrada["mapeo_b"],
-        delimitador_a=entrada["delimitador_a"],
-        delimitador_b=entrada["delimitador_b"],
+        delimitador_a=entrada.get("delimitador_a"),
+        delimitador_b=entrada.get("delimitador_b"),
+        formato_a=entrada.get("formato_a"),
+        formato_b=entrada.get("formato_b"),
+        hoja_a=entrada.get("hoja_a"),
+        hoja_b=entrada.get("hoja_b"),
+        nombre_a=entrada.get("nombre_a", ""),
+        nombre_b=entrada.get("nombre_b", ""),
     )
     assert obtenido == esperado

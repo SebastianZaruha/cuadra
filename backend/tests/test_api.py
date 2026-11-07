@@ -44,7 +44,7 @@ def test_salud_y_limites():
     cuerpo = limites.json()
     assert cuerpo["max_bytes"] == MAX_BYTES == 1_048_576
     assert cuerpo["max_filas"] == MAX_FILAS == 2_000
-    assert cuerpo["schema_version"] == 1
+    assert cuerpo["schema_version"] == 2
 
 
 def test_demo_trae_los_dos_inventarios_ficticios():

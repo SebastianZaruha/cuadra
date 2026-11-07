@@ -27,8 +27,8 @@ export function Cierre({
     ? "No quedan pendientes ni bloqueados. El inventario y el historial salen marcados como completos."
     : `Exportación completa bloqueada: ${resumen.pendientes} pendientes y ${resumen.bloqueados} bloqueados.`
   return (
-    <section className="grid gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10" aria-labelledby="titulo-cierre">
-      <h2 id="titulo-cierre" className="font-serif text-2xl">
+    <section className="cristal grid gap-3 p-4 sm:p-6" aria-labelledby="titulo-cierre">
+      <h2 id="titulo-cierre" className="titulo text-2xl">
         Cerrar el cuadre
       </h2>
       <p id="aviso-exportacion" className="text-sm">
@@ -86,7 +86,7 @@ export function Cierre({
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Hacen falta los mismos CSV ya cargados. Si el contenido o la versión no cuadran, la sesión se rechaza.
+          Hacen falta los mismos ficheros ya cargados. Una sesión de la versión 1 se abre y, al guardarla de nuevo, pasa a la versión 2.
         </p>
       </div>
     </section>

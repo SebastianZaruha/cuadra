@@ -41,6 +41,14 @@ class Cuadre:
     filas: list[Fila]
     errores: list[dict]
     errores_decision: list[dict]
+    formato_a: str | None = None
+    formato_b: str | None = None
+    codificacion_a: str | None = None
+    codificacion_b: str | None = None
+    hoja_a: str | None = None
+    hoja_b: str | None = None
+    sha256_a: str | None = None
+    sha256_b: str | None = None
 
     def a_dict(self) -> dict:
         if not self.ok:
@@ -68,17 +76,39 @@ class Cuadre:
 
 
 def construir(
-    csv_a: str,
-    csv_b: str,
+    csv_a: str | bytes,
+    csv_b: str | bytes,
     *,
     mapeo_a: dict,
     mapeo_b: dict,
     delimitador_a: str | None = None,
     delimitador_b: str | None = None,
+    formato_a: str | None = None,
+    formato_b: str | None = None,
+    hoja_a: str | None = None,
+    hoja_b: str | None = None,
+    nombre_a: str = "",
+    nombre_b: str = "",
     decisiones: list[dict] | None = None,
 ) -> Cuadre:
-    lado_a = leer_fichero(csv_a, fichero="A", mapeo=mapeo_a, delimitador=delimitador_a)
-    lado_b = leer_fichero(csv_b, fichero="B", mapeo=mapeo_b, delimitador=delimitador_b)
+    lado_a = leer_fichero(
+        csv_a,
+        fichero="A",
+        mapeo=mapeo_a,
+        delimitador=delimitador_a,
+        formato=formato_a,
+        hoja=hoja_a,
+        nombre=nombre_a,
+    )
+    lado_b = leer_fichero(
+        csv_b,
+        fichero="B",
+        mapeo=mapeo_b,
+        delimitador=delimitador_b,
+        formato=formato_b,
+        hoja=hoja_b,
+        nombre=nombre_b,
+    )
     if lado_a.errores or lado_b.errores:
         return Cuadre(
             ok=False,
@@ -87,6 +117,14 @@ def construir(
             filas=[],
             errores=lado_a.errores + lado_b.errores,
             errores_decision=[],
+            formato_a=lado_a.formato,
+            formato_b=lado_b.formato,
+            codificacion_a=lado_a.codificacion,
+            codificacion_b=lado_b.codificacion,
+            hoja_a=lado_a.hoja,
+            hoja_b=lado_b.hoja,
+            sha256_a=lado_a.sha256,
+            sha256_b=lado_b.sha256,
         )
     _marcar_duplicados(lado_a.filas)
     _marcar_duplicados(lado_b.filas)
@@ -102,6 +140,14 @@ def construir(
         filas=filas,
         errores=[],
         errores_decision=errores_decision,
+        formato_a=lado_a.formato,
+        formato_b=lado_b.formato,
+        codificacion_a=lado_a.codificacion,
+        codificacion_b=lado_b.codificacion,
+        hoja_a=lado_a.hoja,
+        hoja_b=lado_b.hoja,
+        sha256_a=lado_a.sha256,
+        sha256_b=lado_b.sha256,
     )
 
 

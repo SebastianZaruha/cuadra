@@ -71,21 +71,30 @@ def detalle_errores(filas: list[int]) -> str:
     return f"errores en las filas {nums}"
 
 
-def delimitador_ambiguo(fichero: str) -> str:
+def delimitador_ambiguo(fichero: str, presentes: set[str] | None = None) -> str:
+    if not presentes or presentes == {",", ";"}:
+        detalle = "coma y punto y coma"
+    else:
+        orden = [
+            nombre
+            for simbolo, nombre in ((",", "coma"), (";", "punto y coma"), ("\t", "tabulador"))
+            if simbolo in presentes
+        ]
+        detalle = orden[0] if len(orden) == 1 else ", ".join(orden[:-1]) + " y " + orden[-1]
     return (
-        f"El fichero {fichero} usa coma y punto y coma fuera de comillas. "
+        f"El fichero {fichero} usa {detalle} fuera de comillas. "
         "Elige el delimitador; Cuadra no lo adivina."
     )
 
 
 def delimitador_ausente(fichero: str) -> str:
     return (
-        f"No se detectó coma ni punto y coma en la cabecera del fichero {fichero}."
+        f"No se detectó coma, punto y coma ni tabulador en la cabecera del fichero {fichero}."
     )
 
 
 def delimitador_no_coincide(elegido: str, fichero: str) -> str:
-    visible = "coma" if elegido == "," else "punto y coma"
+    visible = {",": "coma", ";": "punto y coma", "\t": "tabulador"}.get(elegido, elegido)
     return (
         f"Elegiste {visible} para el fichero {fichero}, pero la cabecera no "
         "contiene ese delimitador fuera de comillas."
@@ -199,7 +208,67 @@ def decision_en_bloqueada(identificador: str) -> str:
 
 
 def sesion_version(version: object) -> str:
-    return f"La sesión usa schema_version {version} y Cuadra solo abre la versión 1."
+    return f"La sesión usa schema_version {version} y Cuadra abre las versiones 1 y 2."
+
+
+def formato_no_soportado(fichero: str, detalle: str) -> str:
+    return f"El fichero {fichero} no se puede leer: {detalle}"
+
+
+def formato_distinto(fichero: str, elegido: str, encontrado: str) -> str:
+    return (
+        f"Indicaste {elegido} para el fichero {fichero}, pero el contenido es {encontrado}."
+    )
+
+
+def archivo_danado(fichero: str, formato: str) -> str:
+    return f"El fichero {fichero} está dañado o no es un {formato} válido."
+
+
+def hoja_requerida(fichero: str, hojas: list[str]) -> str:
+    lista = ", ".join(hojas)
+    return (
+        f"El fichero {fichero} tiene varias hojas ({lista}). Elige una. Cuadra no elige en silencio."
+    )
+
+
+def hoja_inexistente(fichero: str, hoja: str, hojas: list[str]) -> str:
+    lista = ", ".join(hojas)
+    return f"La hoja «{hoja}» no está en el fichero {fichero}. Hojas: {lista}."
+
+
+def sin_hojas(fichero: str) -> str:
+    return f"El fichero {fichero} no tiene hojas."
+
+
+def json_invalido(fichero: str) -> str:
+    return f"El fichero {fichero} no es JSON válido."
+
+
+def json_no_es_lista(fichero: str) -> str:
+    return f"El JSON del fichero {fichero} tiene que ser un array de objetos."
+
+
+def json_vacio(fichero: str) -> str:
+    return f"El JSON del fichero {fichero} es un array vacío."
+
+
+def json_fila(fichero: str, fila: int) -> str:
+    return f"El elemento de la fila {fila} del fichero {fichero} no es un objeto."
+
+
+def json_clave(fichero: str, fila: int) -> str:
+    return f"En el fichero {fichero}, fila {fila}, hay una clave que no es texto."
+
+
+def json_valor(fichero: str, fila: int, clave: str) -> str:
+    return (
+        f"En el fichero {fichero}, fila {fila}, la clave «{clave}» no es texto, número ni nulo."
+    )
+
+
+def base64_invalido(fichero: str) -> str:
+    return f"El contenido del fichero {fichero} no viene en base64 válido."
 
 
 def sesion_hash(fichero: str) -> str:

@@ -232,11 +232,15 @@ def test_fichero_demasiado_grande():
     assert resultado["errores"][0]["codigo"] == "fichero_demasiado_grande"
 
 
-def test_utf8_invalido_se_rechaza_al_leer_bytes():
-    datos = "sku,descripcion,cantidad\nA-1,cañón,1\n".encode("latin-1")
+def test_windows_1252_se_lee_y_el_pdf_no():
+    datos = "sku,descripcion,cantidad\nA-1,cañón €,1\n".encode("cp1252")
     lectura = leer_texto(datos, fichero="A")
-    assert lectura["ok"] is False
-    assert lectura["errores"][0]["codigo"] == "codificacion_invalida"
+    assert lectura["ok"] is True
+    assert lectura["codificacion"] == "windows-1252"
+    assert "cañón €" in lectura["texto"]
+    pdf = leer_texto(b"%PDF-1.4 no es un inventario", fichero="A")
+    assert pdf["ok"] is False
+    assert pdf["errores"][0]["codigo"] == "formato_no_soportado"
 
 
 def test_cabecera_duplicada_no_adivina_columna():
@@ -257,8 +261,9 @@ def test_mapeo_con_la_misma_columna_dos_veces():
     assert resultado["errores"][0]["codigo"] == "mapeo_repetido"
 
 
-def test_bom_no_cambia_el_hash_de_la_sesion_ni_el_cuadre():
-    from cuadra.dominio.servicio import crear_sesion
+def test_el_bom_no_cambia_el_cuadre_y_si_el_hash_de_los_bytes():
+    from cuadra.dominio.lectura import sha256_texto
+    from cuadra.dominio.servicio import abrir_sesion, crear_sesion
 
     csv_a, csv_b, entrada, esperado = cargar_par("02-punto-y-coma")
     con_bom = "\ufeff" + csv_a
@@ -281,4 +286,27 @@ def test_bom_no_cambia_el_hash_de_la_sesion_ni_el_cuadre():
         nombre_a="a.csv",
         nombre_b="b.csv",
     )
-    assert sesion_sin["fichero_a"]["sha256"] == sesion_con["fichero_a"]["sha256"]
+    assert sesion_sin["schema_version"] == 2
+    assert sesion_con["fichero_a"]["codificacion"] == "utf-8-sig"
+    assert sesion_sin["fichero_a"]["sha256"] != sesion_con["fichero_a"]["sha256"]
+    # La v1 ignoraba el BOM. Esos archivos siguen abriéndose.
+    v1 = {
+        "aplicacion": "cuadra",
+        "schema_version": 1,
+        "fichero_a": {
+            "nombre": "a.csv",
+            "sha256": sha256_texto(csv_a),
+            "delimitador": ";",
+            "mapeo": entrada["mapeo_a"],
+        },
+        "fichero_b": {
+            "nombre": "b.csv",
+            "sha256": sha256_texto(csv_b),
+            "delimitador": ";",
+            "mapeo": entrada["mapeo_b"],
+        },
+        "decisiones": [],
+    }
+    assert abrir_sesion(v1, con_bom, csv_b)["ok"] is True
+    assert abrir_sesion(v1, csv_a, csv_b)["ok"] is True
+    assert abrir_sesion(sesion_con, csv_a, csv_b)["ok"] is False

@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "delimitador_a": null,
+  "delimitador_b": null,
+  "exportacion_completa_permitida": true,
+  "resumen": {
+    "iguales": 1,
+    "modificados": 0,
+    "solo_en_A": 0,
+    "solo_en_B": 0,
+    "bloqueados": 0,
+    "pendientes": 0,
+    "resueltos": 1
+  },
+  "filas": [
+    {
+      "tipo": "iguales",
+      "identificador": "H-1",
+      "descripcion": "Martillo",
+      "cantidad": "8",
+      "fila_a": 2,
+      "fila_b": 2,
+      "estado": "resuelta",
+      "decision": null
+    }
+  ],
+  "errores": [],
+  "errores_decision": []
+}

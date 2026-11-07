@@ -1,10 +1,11 @@
-"""CSV de inventario e historial. El completo no sale si queda algo sin resolver."""
+"""CSV y Excel del inventario y del historial. El completo no sale si queda algo sin resolver."""
 
 from __future__ import annotations
 
+import base64
 import csv
 from dataclasses import dataclass
-from io import StringIO
+from io import BytesIO, StringIO
 
 from cuadra.dominio.cuadre import Cuadre, resumen_de
 from cuadra.dominio.errores import ExportacionBloqueada
@@ -98,7 +99,114 @@ def exportar_cuadre(cuadre: Cuadre, modo: str) -> dict:
             ],
             historial,
         ),
+        "nombre_inventario_xlsx": f"cuadra-inventario-{sufijo}.xlsx",
+        "nombre_historial_xlsx": f"cuadra-historial-{sufijo}.xlsx",
+        "inventario_xlsx_base64": _xlsx_b64(
+            marca,
+            "Inventario",
+            ["marca_exportacion", "identificador", "descripcion", "cantidad", "origen"],
+            inventario,
+        ),
+        "historial_xlsx_base64": _xlsx_b64(
+            marca,
+            "Historial",
+            [
+                "marca_exportacion",
+                "fichero",
+                "fila",
+                "identificador",
+                "descripcion",
+                "cantidad_original",
+                "categoria",
+                "decision",
+                "cantidad_decidida",
+                "motivo",
+                "en_inventario",
+            ],
+            historial,
+        ),
     }
+
+
+def _xlsx_b64(marca: str, titulo: str, cabecera: list[str], filas: list[list[str]]) -> str:
+    return base64.b64encode(_libro_xlsx(marca, titulo, cabecera, filas)).decode("ascii")
+
+
+def _libro_xlsx(marca: str, titulo: str, cabecera: list[str], filas: list[list[str]]) -> bytes:
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.page import PageMargins
+
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = titulo
+    fila_cabecera = 1
+    if marca == "PARCIAL":
+        hoja.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(cabecera))
+        aviso = hoja.cell(1, 1, "PARCIAL")
+        aviso.font = Font(bold=True, color="FFF7F3EA", size=14)
+        aviso.fill = PatternFill("solid", fgColor="FF8A5A12")
+        aviso.alignment = Alignment(horizontal="left", vertical="center")
+        hoja.row_dimensions[1].height = 26
+        fila_cabecera = 2
+        hoja.sheet_properties.tabColor = "8A5A12"
+    else:
+        hoja.sheet_properties.tabColor = "1F6B4A"
+    relleno = PatternFill("solid", fgColor="FF1F6B4A")
+    fuente = Font(bold=True, color="FFF7F3EA")
+    for columna, nombre in enumerate(cabecera, 1):
+        celda = hoja.cell(fila_cabecera, columna, nombre)
+        celda.font = fuente
+        celda.fill = relleno
+        celda.alignment = Alignment(horizontal="left", vertical="center")
+    cantidades = {"cantidad", "cantidad_original", "cantidad_decidida"}
+    for indice, fila in enumerate(filas, fila_cabecera + 1):
+        for columna, valor in enumerate(fila, 1):
+            celda = hoja.cell(indice, columna)
+            nombre = cabecera[columna - 1]
+            if nombre in cantidades:
+                celda.value = _valor_numerico(valor)
+                if isinstance(celda.value, (int, float)) and not isinstance(celda.value, bool):
+                    celda.number_format = "0.####"
+            else:
+                celda.value = valor
+            if marca == "PARCIAL" and nombre == "marca_exportacion":
+                celda.font = Font(bold=True, color="FF8A5A12")
+    hoja.freeze_panes = f"A{fila_cabecera + 1}"
+    ultima = fila_cabecera + len(filas)
+    hoja.auto_filter.ref = f"A{fila_cabecera}:{get_column_letter(len(cabecera))}{max(ultima, fila_cabecera)}"
+    hoja.page_setup.orientation = "landscape"
+    hoja.page_setup.fitToPage = True
+    hoja.page_setup.fitToWidth = 1
+    hoja.page_setup.fitToHeight = 0
+    hoja.page_setup.paperSize = hoja.PAPERSIZE_A4
+    hoja.page_margins = PageMargins(left=0.5, right=0.5, top=0.6, bottom=0.6)
+    hoja.sheet_view.showGridLines = False
+    hoja.oddHeader.left.text = "Cuadra"
+    hoja.oddHeader.right.text = marca
+    hoja.print_title_rows = f"{fila_cabecera}:{fila_cabecera}"
+    for columna, nombre in enumerate(cabecera, 1):
+        ancho = len(nombre) + 2
+        for fila in filas[:80]:
+            ancho = max(ancho, min(42, len(str(fila[columna - 1])) + 2))
+        hoja.column_dimensions[get_column_letter(columna)].width = max(ancho, 12)
+    buffer = BytesIO()
+    libro.save(buffer)
+    return buffer.getvalue()
+
+
+def _valor_numerico(valor: str) -> str | int | float:
+    if not es_cantidad_canonica(valor):
+        return valor
+    if "." not in valor:
+        return int(valor)
+    numero = float(valor)
+    from cuadra.dominio.formatos import expandir_decimal
+
+    if expandir_decimal(format(numero, ".15g")) == valor:
+        return numero
+    return valor
 
 
 def _render(meta: list[str], header: list[str], filas: list[list[str]]) -> str:

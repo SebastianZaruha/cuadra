@@ -1,0 +1,6 @@
+{
+  "delimitador_a": null,
+  "delimitador_b": null,
+  "mapeo_a": {"identificador": "sku", "descripcion": "descripcion", "cantidad": "cantidad"},
+  "mapeo_b": {"identificador": "sku", "descripcion": "descripcion", "cantidad": "cantidad"}
+}
