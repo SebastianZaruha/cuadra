@@ -29,6 +29,46 @@ def test_varias_hojas_no_se_eligen_solas():
     assert sin_hoja["filas"] == []
 
 
+def test_excel_conserva_un_diezmilesimo():
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = "Inventario"
+    hoja.append(["sku", "descripcion", "cantidad"])
+    hoja.append(["P-1", "Grano", 0.0001])
+    buffer = BytesIO()
+    libro.save(buffer)
+    datos = buffer.getvalue()
+    resultado = reconciliar(datos, datos, mapeo_a=MAPEO, mapeo_b=MAPEO, nombre_a="a.xlsx", nombre_b="b.xlsx")
+    assert resultado["ok"] is True
+    assert resultado["filas"][0]["cantidad"] == "0.0001"
+
+
+def test_sesion_de_xlsx_exige_los_bytes_originales():
+    from cuadra.dominio.lectura import sha256_bytes
+    from cuadra.dominio.servicio import abrir_sesion, crear_sesion
+
+    datos = (FIXTURES / "19-xlsx" / "a.xlsx").read_bytes()
+    otro = (FIXTURES / "19-xlsx" / "b.xlsx").read_bytes()
+    sesion = crear_sesion(
+        datos,
+        otro,
+        mapeo_a=MAPEO,
+        mapeo_b=MAPEO,
+        nombre_a="a.xlsx",
+        nombre_b="b.xlsx",
+    )
+    assert sesion["schema_version"] == 2
+    assert sesion["fichero_a"]["formato"] == "xlsx"
+    assert sesion["fichero_a"]["sha256"] == sha256_bytes(datos)
+    assert sesion["fichero_a"]["hoja"] == "Inventario"
+    abierta = abrir_sesion(sesion, datos, otro)
+    assert abierta["ok"] is True
+    assert abierta["filas"]
+    cambiada = abrir_sesion(sesion, datos + b"\x00", otro)
+    assert cambiada["ok"] is False
+    assert cambiada["errores"][0]["codigo"] == "sesion_hash"
+
+
 def test_formula_de_excel_se_bloquea_y_el_pdf_no_entra():
     libro = Workbook()
     hoja = libro.active
