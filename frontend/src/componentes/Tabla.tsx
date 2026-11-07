@@ -50,7 +50,8 @@ export function TablaCuadre({
             key={item.id}
             type="button"
             size="sm"
-            variant={filtro === item.id ? "default" : "outline"}
+            variant="outline"
+            className="filtro"
             aria-pressed={filtro === item.id}
             onClick={() => onFiltro(item.id)}
           >

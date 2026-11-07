@@ -337,7 +337,7 @@ export default function App() {
       <header className="cristal flex flex-wrap items-end justify-between gap-4 px-5 py-4 sm:px-7 sm:py-5">
         <div className="grid gap-1">
         <p className="ojo">Inventario</p>
-        <h1 className="titulo text-4xl leading-none">Cuadra</h1>
+        <h1 className="titulo text-[2.6rem] leading-none">Cuadra</h1>
         <p className="max-w-xl text-sm text-muted-foreground">
           Compara dos inventarios. La clave es exacta. No adivina ni sustituye a un ERP.
         </p>

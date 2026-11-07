@@ -189,27 +189,27 @@ function Donut({
   const total = SEGMENTOS.reduce((suma, item) => suma + resumen[item.id], 0)
   const size = 188
   const centro = size / 2
-  const radio = 68
+  const radio = 70
   const circunferencia = 2 * Math.PI * radio
   const partes = trazosDe(resumen, total, circunferencia)
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="group" aria-label={`Distribución: ${texto}`}>
       <defs>
         <linearGradient id="grad-sage" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#e7f6ee" />
-          <stop offset="100%" stopColor="#6f977f" />
+          <stop offset="0%" stopColor="#8d9d94" />
+          <stop offset="100%" stopColor="#5e6e64" />
         </linearGradient>
         <linearGradient id="grad-peach" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stopColor="#f8d9cc" />
-          <stop offset="100%" stopColor="#e0a48a" />
+          <stop offset="0%" stopColor="#c4a894" />
+          <stop offset="100%" stopColor="#8d6b58" />
         </linearGradient>
         <linearGradient id="grad-sky" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#e4f1f8" />
-          <stop offset="100%" stopColor="#8aafc9" />
+          <stop offset="0%" stopColor="#9aa8b8" />
+          <stop offset="100%" stopColor="#5d6d82" />
         </linearGradient>
         <linearGradient id="grad-sand" x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f8edd8" />
-          <stop offset="100%" stopColor="#d4b483" />
+          <stop offset="0%" stopColor="#c4b49a" />
+          <stop offset="100%" stopColor="#8d7b62" />
         </linearGradient>
         <pattern id="tex-sage" width="6" height="6" patternUnits="userSpaceOnUse">
           <rect width="6" height="6" fill="#6f977f" />
@@ -228,7 +228,7 @@ function Donut({
           <path d="M0 3 H6" stroke="#4a3516" strokeWidth="1.2" />
         </pattern>
         <filter id="brillo-dona" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <feGaussianBlur stdDeviation="0.6" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
@@ -246,7 +246,7 @@ function Donut({
             cy={centro}
             r={radio}
             fill="none"
-            strokeWidth="16"
+            strokeWidth="10"
             strokeLinecap="round"
             strokeDasharray={item.trazo}
             transform={`rotate(${item.giro} ${centro} ${centro})`}
@@ -265,7 +265,7 @@ function Donut({
           />
         ))
       )}
-      <text x={centro} y={centro} textAnchor="middle" dominantBaseline="central" className="dona-numero" fontSize="28" fill="currentColor" style={{ pointerEvents: "none" }}>
+      <text x={centro} y={centro} textAnchor="middle" dominantBaseline="central" className="dona-numero" fontSize="26" fontWeight="400" fill="currentColor" style={{ pointerEvents: "none" }}>
         {total}
       </text>
     </svg>
