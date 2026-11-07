@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "delimitador_a": ",",
+  "delimitador_b": ",",
+  "exportacion_completa_permitida": false,
+  "resumen": {
+    "iguales": 1,
+    "modificados": 0,
+    "solo_en_A": 0,
+    "solo_en_B": 0,
+    "bloqueados": 1,
+    "pendientes": 0,
+    "resueltos": 1
+  },
+  "filas": [
+    {
+      "tipo": "iguales",
+      "identificador": "C-1",
+      "descripcion": "Completa",
+      "cantidad": "1",
+      "fila_a": 2,
+      "fila_b": 2,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 3,
+      "identificador": "C-2",
+      "descripcion_cruda": "Falta",
+      "cantidad_cruda": "",
+      "errores": [
+        {
+          "codigo": "fila_incompleta",
+          "mensaje": "La fila 3 del fichero A tiene 2 columnas y la cabecera tiene 3.",
+          "fichero": "A",
+          "fila": 3,
+          "columna": null
+        }
+      ]
+    }
+  ],
+  "errores": [],
+  "errores_decision": []
+}

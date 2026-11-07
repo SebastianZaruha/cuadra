@@ -1,0 +1,190 @@
+{
+  "ok": true,
+  "delimitador_a": ",",
+  "delimitador_b": ",",
+  "exportacion_completa_permitida": false,
+  "resumen": {
+    "iguales": 6,
+    "modificados": 0,
+    "solo_en_A": 1,
+    "solo_en_B": 0,
+    "bloqueados": 6,
+    "pendientes": 1,
+    "resueltos": 6
+  },
+  "filas": [
+    {
+      "tipo": "iguales",
+      "identificador": "N-1",
+      "descripcion": "Entero",
+      "cantidad": "10",
+      "fila_a": 2,
+      "fila_b": 2,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "N-10",
+      "descripcion": "Espacios",
+      "cantidad": "8",
+      "fila_a": 11,
+      "fila_b": 6,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "N-11",
+      "descripcion": "Cero negativo",
+      "cantidad": "0",
+      "fila_a": 12,
+      "fila_b": 7,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "N-2",
+      "descripcion": "Decimal",
+      "cantidad": "10.5",
+      "fila_a": 3,
+      "fila_b": 3,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "N-3",
+      "descripcion": "Negativo",
+      "cantidad": "-3",
+      "fila_a": 4,
+      "fila_b": 4,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "iguales",
+      "identificador": "N-4",
+      "descripcion": "Cero",
+      "cantidad": "0",
+      "fila_a": 5,
+      "fila_b": 5,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "solo_en_A",
+      "identificador": "N-7",
+      "descripcion": "Miles",
+      "cantidad": "1",
+      "fila_a": 8,
+      "estado": "pendiente",
+      "decision": null
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 6,
+      "identificador": "N-5",
+      "descripcion_cruda": "Vacio",
+      "cantidad_cruda": "",
+      "errores": [
+        {
+          "codigo": "cantidad_vacia",
+          "mensaje": "La cantidad está vacía.",
+          "fichero": "A",
+          "fila": 6,
+          "columna": "cantidad"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 7,
+      "identificador": "N-6",
+      "descripcion_cruda": "Coma decimal",
+      "cantidad_cruda": "1,5",
+      "errores": [
+        {
+          "codigo": "cantidad_invalida",
+          "mensaje": "La cantidad «1,5» no es válida. Usa un entero o decimal con punto, signo menos opcional, sin separador de miles y con hasta 4 decimales.",
+          "fichero": "A",
+          "fila": 7,
+          "columna": "cantidad"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 9,
+      "identificador": "N-8",
+      "descripcion_cruda": "Muchos decimales",
+      "cantidad_cruda": "1.23456",
+      "errores": [
+        {
+          "codigo": "cantidad_invalida",
+          "mensaje": "La cantidad «1.23456» no es válida. Usa un entero o decimal con punto, signo menos opcional, sin separador de miles y con hasta 4 decimales.",
+          "fichero": "A",
+          "fila": 9,
+          "columna": "cantidad"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 10,
+      "identificador": "N-9",
+      "descripcion_cruda": "Texto",
+      "cantidad_cruda": "abc",
+      "errores": [
+        {
+          "codigo": "cantidad_invalida",
+          "mensaje": "La cantidad «abc» no es válida. Usa un entero o decimal con punto, signo menos opcional, sin separador de miles y con hasta 4 decimales.",
+          "fichero": "A",
+          "fila": 10,
+          "columna": "cantidad"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 13,
+      "identificador": "N-12",
+      "descripcion_cruda": "Ceros izquierda",
+      "cantidad_cruda": "01",
+      "errores": [
+        {
+          "codigo": "cantidad_invalida",
+          "mensaje": "La cantidad «01» no es válida. Usa un entero o decimal con punto, signo menos opcional, sin separador de miles y con hasta 4 decimales.",
+          "fichero": "A",
+          "fila": 13,
+          "columna": "cantidad"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 14,
+      "identificador": "N-13",
+      "descripcion_cruda": "Signo mas",
+      "cantidad_cruda": "+5",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (+). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 14,
+          "columna": "cantidad"
+        }
+      ]
+    }
+  ],
+  "errores": [],
+  "errores_decision": []
+}

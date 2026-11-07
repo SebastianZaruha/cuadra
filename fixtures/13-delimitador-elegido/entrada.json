@@ -1,0 +1,14 @@
+{
+  "delimitador_a": ";",
+  "delimitador_b": ";",
+  "mapeo_a": {
+    "identificador": "sku",
+    "descripcion": "descripcion,nota",
+    "cantidad": "cantidad"
+  },
+  "mapeo_b": {
+    "identificador": "sku",
+    "descripcion": "descripcion,nota",
+    "cantidad": "cantidad"
+  }
+}

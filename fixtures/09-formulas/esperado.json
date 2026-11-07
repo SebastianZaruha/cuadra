@@ -1,0 +1,165 @@
+{
+  "ok": true,
+  "delimitador_a": ",",
+  "delimitador_b": ",",
+  "exportacion_completa_permitida": false,
+  "resumen": {
+    "iguales": 1,
+    "modificados": 0,
+    "solo_en_A": 0,
+    "solo_en_B": 0,
+    "bloqueados": 8,
+    "pendientes": 0,
+    "resueltos": 1
+  },
+  "filas": [
+    {
+      "tipo": "iguales",
+      "identificador": "SAFE2",
+      "descripcion": "Normal",
+      "cantidad": "-2",
+      "fila_a": 10,
+      "fila_b": 2,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 2,
+      "identificador": "=CMD",
+      "descripcion_cruda": "Tornillo",
+      "cantidad_cruda": "1",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (=). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 2,
+          "columna": "sku"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 3,
+      "identificador": "+SKU",
+      "descripcion_cruda": "Tuerca",
+      "cantidad_cruda": "2",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (+). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 3,
+          "columna": "sku"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 4,
+      "identificador": "-SKU",
+      "descripcion_cruda": "Arandela",
+      "cantidad_cruda": "3",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (-). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 4,
+          "columna": "sku"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 5,
+      "identificador": "@SUM",
+      "descripcion_cruda": "Clavo",
+      "cantidad_cruda": "4",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (@). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 5,
+          "columna": "sku"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 6,
+      "identificador": "\tTABID",
+      "descripcion_cruda": "Perno",
+      "cantidad_cruda": "6",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (tabulación). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 6,
+          "columna": "sku"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 7,
+      "identificador": "SAFE",
+      "descripcion_cruda": "=cmd",
+      "cantidad_cruda": "5",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (=). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 7,
+          "columna": "descripcion"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 8,
+      "identificador": "SAFE3",
+      "descripcion_cruda": "\r=1",
+      "cantidad_cruda": "1",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (retorno de carro). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 8,
+          "columna": "descripcion"
+        }
+      ]
+    },
+    {
+      "tipo": "bloqueados",
+      "fichero": "A",
+      "fila": 9,
+      "identificador": "SAFE4",
+      "descripcion_cruda": "Normal",
+      "cantidad_cruda": "=1+1",
+      "errores": [
+        {
+          "codigo": "formula_peligrosa",
+          "mensaje": "La celda empieza por un carácter de fórmula (=). Corrígelo en el origen; Cuadra no lo interpreta.",
+          "fichero": "A",
+          "fila": 9,
+          "columna": "cantidad"
+        }
+      ]
+    }
+  ],
+  "errores": [],
+  "errores_decision": []
+}

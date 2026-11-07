@@ -1,0 +1,14 @@
+# cuadra_schema=1
+# cuadra_tipo=inventario
+# cuadra_exportacion=COMPLETA
+# cuadra_pendientes=0
+# cuadra_bloqueados=0
+# cuadra_excluidas=1
+marca_exportacion,identificador,descripcion,cantidad,origen
+COMPLETA,LC-100,Martillo de uña 16 oz,12,igual
+COMPLETA,LC-110,Destornillador plano 6 mm,18,B
+COMPLETA,LC-120,Cinta métrica 5 m,7,igual
+COMPLETA,LC-130,Guantes de algodón,15,A
+COMPLETA,LC-140,Bombilla LED 9 W,40,A
+COMPLETA,LC-160,Broca para madera 8 mm,11,igual
+COMPLETA,LC-170,Nivel de burbuja 40 cm,5,B

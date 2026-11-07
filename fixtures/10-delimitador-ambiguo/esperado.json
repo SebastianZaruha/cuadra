@@ -1,0 +1,18 @@
+{
+  "ok": false,
+  "delimitador_a": null,
+  "delimitador_b": ",",
+  "exportacion_completa_permitida": false,
+  "resumen": null,
+  "filas": [],
+  "errores": [
+    {
+      "codigo": "delimitador_ambiguo",
+      "mensaje": "El fichero A usa coma y punto y coma fuera de comillas. Elige el delimitador; Cuadra no lo adivina.",
+      "fichero": "A",
+      "fila": 1,
+      "columna": null
+    }
+  ],
+  "errores_decision": []
+}

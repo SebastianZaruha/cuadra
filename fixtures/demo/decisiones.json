@@ -1,0 +1,27 @@
+[
+  {
+    "identificador": "LC-110",
+    "tipo": "elegir_B",
+    "motivo": "El conteo de tienda es el más reciente."
+  },
+  {
+    "identificador": "LC-130",
+    "tipo": "elegir_A",
+    "motivo": "Sigue en el depósito y se conserva."
+  },
+  {
+    "identificador": "LC-140",
+    "tipo": "elegir_A",
+    "motivo": "Unificamos la descripción con el depósito."
+  },
+  {
+    "identificador": "LC-150",
+    "tipo": "excluir",
+    "motivo": "Muestra dañada; no entra al inventario final."
+  },
+  {
+    "identificador": "LC-170",
+    "tipo": "elegir_B",
+    "motivo": "Alta nueva registrada en tienda."
+  }
+]
