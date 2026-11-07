@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 const NOMBRES = {
   claro: "cielo-dia",
@@ -6,14 +6,9 @@ const NOMBRES = {
 } as const
 
 export function Cielo({ tema }: { tema: "claro" | "oscuro" }) {
-  const [foto, setFoto] = useState(false)
+  const [cargada, setCargada] = useState<string | null>(null)
   const base = NOMBRES[tema]
-  useEffect(() => {
-    const imagen = new Image()
-    imagen.onload = () => setFoto(true)
-    imagen.onerror = () => setFoto(false)
-    imagen.src = `/fondos/${base}.webp`
-  }, [base])
+  const lista = cargada === base
   return (
     <div className="cielo" aria-hidden="true">
       <div className="cielo-degradado" />
@@ -31,16 +26,16 @@ export function Cielo({ tema }: { tema: "claro" | "oscuro" }) {
           <ellipse className="nube" cx="700" cy="240" rx="240" ry="56" />
         </g>
       </svg>
-      {foto ? (
-        <img
-          className="cielo-foto"
-          alt=""
-          src={`/fondos/${base}.webp`}
-          srcSet={`/fondos/${base}-1280.webp 1280w, /fondos/${base}.webp 2560w`}
-          sizes="100vw"
-          onError={() => setFoto(false)}
-        />
-      ) : null}
+      <img
+        key={base}
+        className={lista ? "cielo-foto lista" : "cielo-foto"}
+        alt=""
+        src={`/fondos/${base}.webp`}
+        srcSet={`/fondos/${base}-1280.webp 1280w, /fondos/${base}.webp 2560w`}
+        sizes="100vw"
+        onLoad={() => setCargada(base)}
+        onError={() => setCargada(null)}
+      />
     </div>
   )
 }

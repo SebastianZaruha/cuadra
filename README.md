@@ -127,7 +127,7 @@ Los mismos bytes y las mismas decisiones producen el mismo cuadre y los mismos b
 
 ### Resumen
 
-El fondo es un cielo de día o de noche, según `prefers-color-scheme` o el conmutador Día / Noche / Sistema, que se guarda en el navegador. Si están `frontend/public/fondos/cielo-dia.webp` y `cielo-noche.webp` (y las de 1280 px para `srcset`), se usan. Si no, queda el degradado. Las nubes se mueven muy despacio y se quedan quietas con `prefers-reduced-motion`.
+El fondo es un cielo de día o de noche, según `prefers-color-scheme` o el conmutador Día / Noche / Sistema, que se guarda en el navegador. Las fotos están en `frontend/public/fondos/` (`cielo-dia.webp` y `cielo-noche.webp`, 2560×1440, y las de 1280 px de ancho para `srcset`). Mientras cargan, o si faltan, se ve el degradado. Las nubes dibujadas se mueven muy despacio y se quedan quietas con `prefers-reduced-motion`.
 
 Después del cuadre hay tres gráficas. La dona reparte iguales, modificadas, solo en A y solo en B. La barra cuenta conflictos resueltos (las iguales entran solas y no cuentan como conflicto). Las barras horizontales ordenan las diez claves con más diferencia de cantidad. Pulsar un segmento o una barra filtra la tabla. Cada gráfica tiene una tabla equivalente, icono o trama además del color, y no se mueve si el sistema pide menos movimiento.
 

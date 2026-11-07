@@ -12,3 +12,4 @@ ts	phase	decision	why	evidence	result
 2026-11-07T15:20:00Z	diseno	Botones de cristal y un solo botón de acción más sólido. La tabla sigue opaca.	La primera captura parecía un formulario verde sobre un cielo tímido.	/opt/cursor/artifacts/cuadra-dia-escritorio.png	segunda captura
 2026-11-07T15:25:00Z	medida	Lighthouse del primer pantallazo: rendimiento 99, accesibilidad 100.	Medido con el build de producción y el Chromium de Playwright, una pasada.	/tmp/lh.json	99 y 100
 2026-11-07T15:25:00Z	medida	El JS de producción pesa 95 KB gzip. Geist solo descarga el rango latino.	Recharts se quedó fuera.	frontend/dist	95 KB gzip
+2026-11-07T14:40:00Z	fondos	Las fotos de cielo sustituyen al degradado cuando cargan. Día 91 KB y noche 89 KB, ambas 2560×1440.	Sebastián pasó los archivos finales. El degradado queda debajo mientras llegan.	frontend/public/fondos/	fotos en el preview local
