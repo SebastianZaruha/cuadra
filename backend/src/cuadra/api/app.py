@@ -1,7 +1,9 @@
-"""API sin estado: cada petición trae los CSV y se olvida al responder."""
+"""API sin estado: cada petición trae los ficheros y se olvida al responder."""
 
 from __future__ import annotations
 
+import base64
+import binascii
 import os
 
 from fastapi import APIRouter, FastAPI
@@ -10,7 +12,8 @@ from fastapi.responses import JSONResponse
 
 from cuadra import __version__
 from cuadra.dominio.errores import ExportacionBloqueada
-from cuadra.dominio.lectura import normalizar_texto
+from cuadra.dominio import mensajes
+from cuadra.dominio.lectura import error, normalizar_texto
 from cuadra.dominio.limites import (
     MAX_BYTES,
     MAX_COLUMNAS,
@@ -48,6 +51,32 @@ def _decisiones(cuerpo: ReconciliarIn) -> list[dict]:
             item["cantidad"] = decision.cantidad
         salida.append(item)
     return salida
+
+
+def _bytes(texto: str | None, codificado: str | None, fichero: str) -> bytes | dict:
+    if codificado is not None:
+        try:
+            return base64.b64decode(codificado, validate=True)
+        except (binascii.Error, ValueError):
+            return error("base64_invalido", mensajes.base64_invalido(fichero), fichero)
+    if texto is not None:
+        return texto.encode("utf-8")
+    return b""
+
+
+def _fallo_bytes(resultado: bytes | dict) -> dict | None:
+    if isinstance(resultado, dict):
+        return {
+            "ok": False,
+            "delimitador_a": None,
+            "delimitador_b": None,
+            "exportacion_completa_permitida": False,
+            "resumen": None,
+            "filas": [],
+            "errores": [resultado],
+            "errores_decision": [],
+        }
+    return None
 
 
 def _responder(resultado: dict) -> JSONResponse | dict:
@@ -98,21 +127,62 @@ def demo() -> dict:
 
 @router.post("/inspeccionar", response_model=None)
 def ruta_inspeccionar(cuerpo: InspeccionarIn) -> JSONResponse | dict:
+    datos = _bytes(cuerpo.csv, cuerpo.contenido_base64, cuerpo.fichero)
+    if isinstance(datos, dict):
+        return {
+            "ok": False,
+            "formato": None,
+            "codificacion": None,
+            "delimitador": None,
+            "origen_delimitador": None,
+            "hoja": None,
+            "hojas": [],
+            "origen_hoja": None,
+            "columnas": [],
+            "muestra": [],
+            "filas_datos": 0,
+            "errores": [datos],
+            "sha256": None,
+        }
     return _responder(
-        inspeccionar(cuerpo.csv, delimitador=cuerpo.delimitador, fichero=cuerpo.fichero)
+        inspeccionar(
+            datos,
+            delimitador=cuerpo.delimitador,
+            fichero=cuerpo.fichero,
+            formato=cuerpo.formato,
+            hoja=cuerpo.hoja,
+            nombre=cuerpo.nombre,
+        )
     )
 
 
 @router.post("/reconciliar", response_model=None)
 def ruta_reconciliar(cuerpo: ReconciliarIn) -> JSONResponse | dict:
+    lado_a = _bytes(cuerpo.csv_a, cuerpo.contenido_a_base64, "A")
+    lado_b = _bytes(cuerpo.csv_b, cuerpo.contenido_b_base64, "B")
+    fallo_a = _fallo_bytes(lado_a)
+    fallo_b = _fallo_bytes(lado_b)
+    if fallo_a or fallo_b:
+        errores = []
+        if fallo_a:
+            errores.extend(fallo_a["errores"])
+        if fallo_b:
+            errores.extend(fallo_b["errores"])
+        return {**fallo_a, "errores": errores} if fallo_a else {**fallo_b, "errores": errores}
     return _responder(
         reconciliar(
-            cuerpo.csv_a,
-            cuerpo.csv_b,
+            lado_a,
+            lado_b,
             mapeo_a=cuerpo.mapeo_a.model_dump(),
             mapeo_b=cuerpo.mapeo_b.model_dump(),
             delimitador_a=cuerpo.delimitador_a,
             delimitador_b=cuerpo.delimitador_b,
+            formato_a=cuerpo.formato_a,
+            formato_b=cuerpo.formato_b,
+            hoja_a=cuerpo.hoja_a,
+            hoja_b=cuerpo.hoja_b,
+            nombre_a=cuerpo.nombre_a,
+            nombre_b=cuerpo.nombre_b,
             decisiones=_decisiones(cuerpo),
         )
     )
@@ -120,15 +190,28 @@ def ruta_reconciliar(cuerpo: ReconciliarIn) -> JSONResponse | dict:
 
 @router.post("/exportar", response_model=None)
 def ruta_exportar(cuerpo: ExportarIn) -> JSONResponse | dict:
+    lado_a = _bytes(cuerpo.csv_a, cuerpo.contenido_a_base64, "A")
+    lado_b = _bytes(cuerpo.csv_b, cuerpo.contenido_b_base64, "B")
+    fallo_a = _fallo_bytes(lado_a)
+    fallo_b = _fallo_bytes(lado_b)
+    if fallo_a or fallo_b:
+        errores = (fallo_a or {"errores": []})["errores"] + (fallo_b or {"errores": []})["errores"]
+        return JSONResponse(status_code=400, content={"ok": False, "errores": errores})
     try:
         return exportar(
-            cuerpo.csv_a,
-            cuerpo.csv_b,
+            lado_a,
+            lado_b,
             mapeo_a=cuerpo.mapeo_a.model_dump(),
             mapeo_b=cuerpo.mapeo_b.model_dump(),
             modo=cuerpo.modo,
             delimitador_a=cuerpo.delimitador_a,
             delimitador_b=cuerpo.delimitador_b,
+            formato_a=cuerpo.formato_a,
+            formato_b=cuerpo.formato_b,
+            hoja_a=cuerpo.hoja_a,
+            hoja_b=cuerpo.hoja_b,
+            nombre_a=cuerpo.nombre_a,
+            nombre_b=cuerpo.nombre_b,
             decisiones=_decisiones(cuerpo),
         )
     except ExportacionBloqueada as exc:
@@ -153,15 +236,24 @@ def ruta_exportar(cuerpo: ExportarIn) -> JSONResponse | dict:
 
 @router.post("/sesion")
 def ruta_sesion(cuerpo: ReconciliarIn) -> dict:
+    lado_a = _bytes(cuerpo.csv_a, cuerpo.contenido_a_base64, "A")
+    lado_b = _bytes(cuerpo.csv_b, cuerpo.contenido_b_base64, "B")
+    fallo_a = _fallo_bytes(lado_a)
+    if fallo_a or isinstance(lado_b, dict):
+        return {"ok": False, "errores": (fallo_a or {"errores": []})["errores"] + ([lado_b] if isinstance(lado_b, dict) else [])}
     sesion = crear_sesion(
-        cuerpo.csv_a,
-        cuerpo.csv_b,
+        lado_a,
+        lado_b,
         mapeo_a=cuerpo.mapeo_a.model_dump(),
         mapeo_b=cuerpo.mapeo_b.model_dump(),
         nombre_a=cuerpo.nombre_a,
         nombre_b=cuerpo.nombre_b,
         delimitador_a=cuerpo.delimitador_a,
         delimitador_b=cuerpo.delimitador_b,
+        formato_a=cuerpo.formato_a,
+        formato_b=cuerpo.formato_b,
+        hoja_a=cuerpo.hoja_a,
+        hoja_b=cuerpo.hoja_b,
         decisiones=_decisiones(cuerpo),
     )
     return {"sesion": sesion, "nombre": "cuadra-sesion.json", "texto": serializar_sesion(sesion)}
@@ -169,7 +261,14 @@ def ruta_sesion(cuerpo: ReconciliarIn) -> dict:
 
 @router.post("/sesion/abrir", response_model=None)
 def ruta_abrir(cuerpo: SesionAbrirIn) -> JSONResponse | dict:
-    return _responder(abrir_sesion(cuerpo.sesion, cuerpo.csv_a, cuerpo.csv_b))
+    lado_a = _bytes(cuerpo.csv_a, cuerpo.contenido_a_base64, "A")
+    lado_b = _bytes(cuerpo.csv_b, cuerpo.contenido_b_base64, "B")
+    fallo_a = _fallo_bytes(lado_a)
+    fallo_b = _fallo_bytes(lado_b)
+    if fallo_a or fallo_b:
+        errores = (fallo_a or {"errores": []})["errores"] + (fallo_b or {"errores": []})["errores"]
+        return {"ok": False, "errores": errores, "filas": [], "resumen": None}
+    return _responder(abrir_sesion(cuerpo.sesion, lado_a, lado_b))
 
 
 def crear_app() -> FastAPI:

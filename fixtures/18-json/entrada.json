@@ -1,0 +1,8 @@
+{
+  "formato_a": "json",
+  "formato_b": "json",
+  "nombre_a": "a.json",
+  "nombre_b": "b.json",
+  "mapeo_a": {"identificador": "sku", "descripcion": "descripcion", "cantidad": "cantidad"},
+  "mapeo_b": {"identificador": "sku", "descripcion": "descripcion", "cantidad": "cantidad"}
+}

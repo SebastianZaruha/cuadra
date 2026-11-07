@@ -1,4 +1,6 @@
-export type Delimitador = "," | ";"
+export type Delimitador = "," | ";" | "\t"
+export type Formato = "csv" | "xlsx" | "ods" | "json"
+export type Codificacion = "utf-8" | "utf-8-sig" | "windows-1252"
 
 export type Mapeo = {
   identificador: string
@@ -103,8 +105,13 @@ export type Resultado = {
 
 export type Inspeccion = {
   ok: boolean
+  formato: Formato | null
+  codificacion: Codificacion | null
   delimitador: Delimitador | null
   origen_delimitador: "detectado" | "elegido" | null
+  hoja: string | null
+  hojas: string[]
+  origen_hoja: "detectada" | "elegida" | null
   columnas: string[]
   muestra: Record<string, string>[]
   filas_datos: number
@@ -140,13 +147,23 @@ export type Exportacion = {
   nombre_historial: string
   inventario_csv: string
   historial_csv: string
+  nombre_inventario_xlsx: string
+  nombre_historial_xlsx: string
+  inventario_xlsx_base64: string
+  historial_xlsx_base64: string
 }
 
 export type FicheroUi = {
   nombre: string
-  texto: string
+  texto: string | null
+  contenidoBase64: string | null
+  formato: Formato | null
+  codificacion: Codificacion | null
   delimitador: Delimitador | ""
   origenDelimitador: "detectado" | "elegido" | null
+  hoja: string | null
+  hojas: string[]
+  origenHoja: "detectada" | "elegida" | null
   columnas: string[]
   muestra: Record<string, string>[]
   filasDatos: number

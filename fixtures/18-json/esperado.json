@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "delimitador_a": null,
+  "delimitador_b": null,
+  "exportacion_completa_permitida": false,
+  "resumen": {
+    "iguales": 1,
+    "modificados": 0,
+    "solo_en_A": 1,
+    "solo_en_B": 0,
+    "bloqueados": 0,
+    "pendientes": 1,
+    "resueltos": 1
+  },
+  "filas": [
+    {
+      "tipo": "iguales",
+      "identificador": "J-1",
+      "descripcion": "Tuerca",
+      "cantidad": "10.5",
+      "fila_a": 2,
+      "fila_b": 2,
+      "estado": "resuelta",
+      "decision": null
+    },
+    {
+      "tipo": "solo_en_A",
+      "identificador": "J-2",
+      "descripcion": "Arandela",
+      "cantidad": "3",
+      "fila_a": 3,
+      "estado": "pendiente",
+      "decision": null
+    }
+  ],
+  "errores": [],
+  "errores_decision": []
+}

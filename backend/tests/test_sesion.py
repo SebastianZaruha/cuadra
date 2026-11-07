@@ -64,11 +64,11 @@ def test_guardar_y_reabrir_conserva_las_decisiones(demo):
 
 def test_reabrir_rechaza_otra_version(demo):
     sesion = _sesion_demo(demo)
-    sesion["schema_version"] = 2
+    sesion["schema_version"] = 3
     abierta = abrir_sesion(sesion, demo["csv_a"], demo["csv_b"])
     assert abierta["ok"] is False
     assert abierta["filas"] == []
-    assert abierta["errores"][0]["mensaje"] == sesion_version(2)
+    assert abierta["errores"][0]["mensaje"] == sesion_version(3)
 
 
 def test_reabrir_rechaza_csv_distinto(demo):

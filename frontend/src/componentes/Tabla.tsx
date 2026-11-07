@@ -1,4 +1,5 @@
 import { useId, useState } from "react"
+import { ArrowLeftRight, ArrowRight, CircleOff, Equal, PanelLeft } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -36,7 +37,7 @@ export function TablaCuadre({
   return (
     <section id="cuadre" className="grid gap-4" aria-labelledby="titulo-cuadre">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id="titulo-cuadre" className="font-serif text-2xl">
+        <h2 id="titulo-cuadre" className="titulo text-2xl">
           Diferencias
         </h2>
         <p aria-live="polite" className="text-sm">
@@ -67,11 +68,11 @@ export function TablaCuadre({
         />
       </div>
       {visibles.length === 0 ? (
-        <p className="rounded-xl bg-card px-4 py-6 text-sm ring-1 ring-foreground/10">
+        <p className="cristal-denso px-4 py-6 text-sm">
           Ninguna fila coincide con este filtro.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl bg-card ring-1 ring-foreground/10">
+        <div className="cristal-denso overflow-x-auto">
           <table className="tabla-cuadre">
             <caption className="sr-only">
               Valores de A frente a B, con la decisión de cada clave
@@ -102,6 +103,15 @@ export function TablaCuadre({
   )
 }
 
+function IconoFila({ tipo }: { tipo: Fila["tipo"] }) {
+  const comun = { size: 14, "aria-hidden": true as const }
+  if (tipo === "iguales") return <Equal {...comun} />
+  if (tipo === "modificados") return <ArrowLeftRight {...comun} />
+  if (tipo === "solo_en_A") return <PanelLeft {...comun} />
+  if (tipo === "solo_en_B") return <ArrowRight {...comun} />
+  return <CircleOff {...comun} />
+}
+
 function claveFila(fila: Fila): string {
   if (fila.tipo === "bloqueados") return `${fila.fichero}-${fila.fila}-${fila.identificador}`
   return fila.identificador
@@ -124,7 +134,10 @@ function FilaTabla({
       <td data-label="Clave">
         <div className="font-medium">{identificador}</div>
         <div className="mt-1 flex flex-wrap gap-1">
-          <Badge variant="secondary">{etiquetaCategoria(fila)}</Badge>
+          <span className={`pastilla pastilla-${fila.tipo}`}>
+            <IconoFila tipo={fila.tipo} />
+            {etiquetaCategoria(fila)}
+          </span>
           {fila.tipo !== "bloqueados" ? (
             <Badge variant={fila.estado === "pendiente" ? "outline" : "default"}>
               {fila.estado === "pendiente" ? "Pendiente" : "Resuelta"}

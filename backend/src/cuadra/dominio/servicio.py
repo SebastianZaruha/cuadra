@@ -8,7 +8,7 @@ from cuadra.dominio.cuadre import construir
 from cuadra.dominio.errores import ExportacionBloqueada
 from cuadra.dominio.exportar import exportar_cuadre
 from cuadra.dominio import mensajes
-from cuadra.dominio.lectura import error, inspeccionar as _inspeccionar, normalizar_texto
+from cuadra.dominio.lectura import error, inspeccionar as _inspeccionar
 from cuadra.dominio.sesion import (
     abrir_sesion as _abrir_sesion,
     crear_sesion as _crear_sesion,
@@ -18,13 +18,19 @@ from cuadra.dominio.sesion import (
 
 
 def reconciliar(
-    csv_a: str,
-    csv_b: str,
+    csv_a: str | bytes,
+    csv_b: str | bytes,
     *,
     mapeo_a: dict[str, str],
     mapeo_b: dict[str, str],
     delimitador_a: str | None = None,
     delimitador_b: str | None = None,
+    formato_a: str | None = None,
+    formato_b: str | None = None,
+    hoja_a: str | None = None,
+    hoja_b: str | None = None,
+    nombre_a: str = "",
+    nombre_b: str = "",
     decisiones: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return construir(
@@ -34,19 +40,31 @@ def reconciliar(
         mapeo_b=mapeo_b,
         delimitador_a=delimitador_a,
         delimitador_b=delimitador_b,
+        formato_a=formato_a,
+        formato_b=formato_b,
+        hoja_a=hoja_a,
+        hoja_b=hoja_b,
+        nombre_a=nombre_a,
+        nombre_b=nombre_b,
         decisiones=decisiones,
     ).a_dict()
 
 
 def exportar(
-    csv_a: str,
-    csv_b: str,
+    csv_a: str | bytes,
+    csv_b: str | bytes,
     *,
     mapeo_a: dict[str, str],
     mapeo_b: dict[str, str],
     modo: str,
     delimitador_a: str | None = None,
     delimitador_b: str | None = None,
+    formato_a: str | None = None,
+    formato_b: str | None = None,
+    hoja_a: str | None = None,
+    hoja_b: str | None = None,
+    nombre_a: str = "",
+    nombre_b: str = "",
     decisiones: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     cuadre = construir(
@@ -56,14 +74,20 @@ def exportar(
         mapeo_b=mapeo_b,
         delimitador_a=delimitador_a,
         delimitador_b=delimitador_b,
+        formato_a=formato_a,
+        formato_b=formato_b,
+        hoja_a=hoja_a,
+        hoja_b=hoja_b,
+        nombre_a=nombre_a,
+        nombre_b=nombre_b,
         decisiones=decisiones,
     )
     return exportar_cuadre(cuadre, modo)
 
 
 def crear_sesion(
-    csv_a: str,
-    csv_b: str,
+    csv_a: str | bytes,
+    csv_b: str | bytes,
     *,
     mapeo_a: dict[str, str],
     mapeo_b: dict[str, str],
@@ -71,6 +95,10 @@ def crear_sesion(
     nombre_b: str,
     delimitador_a: str | None = None,
     delimitador_b: str | None = None,
+    formato_a: str | None = None,
+    formato_b: str | None = None,
+    hoja_a: str | None = None,
+    hoja_b: str | None = None,
     decisiones: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return _crear_sesion(
@@ -82,6 +110,10 @@ def crear_sesion(
         nombre_b=nombre_b,
         delimitador_a=delimitador_a,
         delimitador_b=delimitador_b,
+        formato_a=formato_a,
+        formato_b=formato_b,
+        hoja_a=hoja_a,
+        hoja_b=hoja_b,
         decisiones=decisiones,
     )
 
@@ -98,26 +130,45 @@ def abrir_sesion(sesion: dict[str, Any], csv_a: str, csv_b: str) -> dict[str, An
     return _abrir_sesion(sesion, csv_a, csv_b)
 
 
-def leer_texto(datos: bytes, *, fichero: str = "A") -> dict[str, Any]:
-    try:
-        texto = datos.decode("utf-8")
-    except UnicodeDecodeError:
+def leer_texto(datos: bytes, *, fichero: str = "A", nombre: str = "") -> dict[str, Any]:
+    from cuadra.dominio.formatos import decodificar, resolver_formato
+
+    formato, fallo = resolver_formato(datos, nombre, None, fichero)
+    if fallo or formato not in {"csv", "json"}:
         return {
             "ok": False,
             "texto": None,
             "errores": [
-                error(
-                    "codificacion_invalida",
-                    mensajes.codificacion_invalida(fichero),
+                fallo
+                if fallo
+                else error(
+                    "formato_no_soportado",
+                    mensajes.formato_no_soportado(fichero, "no es texto"),
                     fichero,
                 )
             ],
         }
-    return {"ok": True, "texto": normalizar_texto(texto), "errores": []}
+    texto, codificacion = decodificar(datos)
+    return {"ok": True, "texto": texto, "codificacion": codificacion, "errores": []}
 
 
-def inspeccionar(csv: str, *, delimitador: str | None = None, fichero: str = "A") -> dict[str, Any]:
-    return _inspeccionar(csv, delimitador=delimitador, fichero=fichero)
+def inspeccionar(
+    contenido: str | bytes,
+    *,
+    delimitador: str | None = None,
+    fichero: str = "A",
+    formato: str | None = None,
+    hoja: str | None = None,
+    nombre: str = "",
+) -> dict[str, Any]:
+    return _inspeccionar(
+        contenido,
+        delimitador=delimitador,
+        fichero=fichero,
+        formato=formato,
+        hoja=hoja,
+        nombre=nombre,
+    )
 
 
 __all__ = [

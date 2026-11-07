@@ -21,12 +21,18 @@ class DecisionIn(BaseModel):
 
 
 class ReconciliarIn(BaseModel):
-    csv_a: str
-    csv_b: str
+    csv_a: str | None = None
+    csv_b: str | None = None
+    contenido_a_base64: str | None = None
+    contenido_b_base64: str | None = None
     nombre_a: str = "A.csv"
     nombre_b: str = "B.csv"
-    delimitador_a: Literal[",", ";"] | None = None
-    delimitador_b: Literal[",", ";"] | None = None
+    formato_a: Literal["csv", "xlsx", "ods", "json"] | None = None
+    formato_b: Literal["csv", "xlsx", "ods", "json"] | None = None
+    delimitador_a: Literal[",", ";", "\t"] | None = None
+    delimitador_b: Literal[",", ";", "\t"] | None = None
+    hoja_a: str | None = None
+    hoja_b: str | None = None
     mapeo_a: MapeoIn
     mapeo_b: MapeoIn
     decisiones: list[DecisionIn] = []
@@ -37,12 +43,18 @@ class ExportarIn(ReconciliarIn):
 
 
 class InspeccionarIn(BaseModel):
-    csv: str
-    delimitador: Literal[",", ";"] | None = None
+    csv: str | None = None
+    contenido_base64: str | None = None
+    nombre: str = ""
+    formato: Literal["csv", "xlsx", "ods", "json"] | None = None
+    delimitador: Literal[",", ";", "\t"] | None = None
+    hoja: str | None = None
     fichero: Literal["A", "B"] = "A"
 
 
 class SesionAbrirIn(BaseModel):
     sesion: dict
-    csv_a: str
-    csv_b: str
+    csv_a: str | None = None
+    csv_b: str | None = None
+    contenido_a_base64: str | None = None
+    contenido_b_base64: str | None = None

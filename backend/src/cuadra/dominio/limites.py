@@ -5,7 +5,8 @@ no duplique la cifra por su cuenta. 1 MiB por fichero deja margen bajo el
 tope de 4,5 MB del cuerpo de una función en Vercel cuando viajan A, B y la sesión.
 """
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+SCHEMA_VERSION_V1 = 1
 MAX_BYTES = 1_048_576
 MAX_FILAS = 2_000
 MAX_COLUMNAS = 40

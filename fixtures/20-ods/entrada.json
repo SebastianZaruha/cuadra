@@ -1,0 +1,8 @@
+{
+  "formato_a": "ods",
+  "formato_b": "ods",
+  "nombre_a": "a.ods",
+  "nombre_b": "b.ods",
+  "mapeo_a": {"identificador": "sku", "descripcion": "descripcion", "cantidad": "cantidad"},
+  "mapeo_b": {"identificador": "sku", "descripcion": "descripcion", "cantidad": "cantidad"}
+}

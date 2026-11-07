@@ -1,0 +1,10 @@
+{
+  "formato_a": "xlsx",
+  "formato_b": "xlsx",
+  "hoja_a": "Tienda",
+  "hoja_b": "Tienda",
+  "nombre_a": "a.xlsx",
+  "nombre_b": "b.xlsx",
+  "mapeo_a": {"identificador": "sku", "descripcion": "descripcion", "cantidad": "cantidad"},
+  "mapeo_b": {"identificador": "sku", "descripcion": "descripcion", "cantidad": "cantidad"}
+}

@@ -47,15 +47,25 @@ export async function obtenerDemo(): Promise<Demo> {
   return (await respuesta.json()) as Demo
 }
 
-export async function inspeccionar(
-  csv: string,
-  fichero: "A" | "B",
-  delimitador: Delimitador | null,
-): Promise<Inspeccion> {
+export async function inspeccionar(entrada: {
+  csv: string | null
+  contenidoBase64: string | null
+  nombre: string
+  fichero: "A" | "B"
+  delimitador: Delimitador | null
+  hoja: string | null
+}): Promise<Inspeccion> {
   const respuesta = await fetch("/api/inspeccionar", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ csv, fichero, delimitador }),
+    body: JSON.stringify({
+      csv: entrada.contenidoBase64 ? null : entrada.csv,
+      contenido_base64: entrada.contenidoBase64,
+      nombre: entrada.nombre,
+      fichero: entrada.fichero,
+      delimitador: entrada.delimitador,
+      hoja: entrada.hoja,
+    }),
   })
   return leerJson<Inspeccion>(respuesta)
 }
@@ -67,12 +77,18 @@ function cuerpoCuadre(
   extra: Record<string, unknown> = {},
 ) {
   return {
-    csv_a: a.texto,
-    csv_b: b.texto,
+    csv_a: a.contenidoBase64 ? null : a.texto,
+    csv_b: b.contenidoBase64 ? null : b.texto,
+    contenido_a_base64: a.contenidoBase64,
+    contenido_b_base64: b.contenidoBase64,
     nombre_a: a.nombre,
     nombre_b: b.nombre,
+    formato_a: a.formato,
+    formato_b: b.formato,
     delimitador_a: a.delimitador || null,
     delimitador_b: b.delimitador || null,
+    hoja_a: a.hoja,
+    hoja_b: b.hoja,
     mapeo_a: a.mapeo,
     mapeo_b: b.mapeo,
     decisiones,
@@ -132,26 +148,49 @@ export async function abrirSesion(
   const respuesta = await fetch("/api/sesion/abrir", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sesion, csv_a: a.texto, csv_b: b.texto }),
+    body: JSON.stringify({
+      sesion,
+      csv_a: a.contenidoBase64 ? null : a.texto,
+      csv_b: b.contenidoBase64 ? null : b.texto,
+      contenido_a_base64: a.contenidoBase64,
+      contenido_b_base64: b.contenidoBase64,
+    }),
   })
   return leerJson<Resultado>(respuesta)
 }
 
-export async function leerArchivo(archivo: File, maxBytes: number): Promise<string> {
+export async function leerBytes(archivo: File, maxBytes: number): Promise<string> {
   if (archivo.size > maxBytes) {
-    throw new Error(
-      `«${archivo.name}» pesa ${archivo.size} bytes y el límite es ${maxBytes} bytes.`,
-    )
+    throw new Error(`«${archivo.name}» pesa ${archivo.size} bytes y el límite es ${maxBytes} bytes.`)
+  }
+  const bytes = new Uint8Array(await archivo.arrayBuffer())
+  let binario = ""
+  const paso = 0x8000
+  for (let indice = 0; indice < bytes.length; indice += paso) {
+    binario += String.fromCharCode(...bytes.subarray(indice, indice + paso))
+  }
+  return btoa(binario)
+}
+
+export async function leerTexto(archivo: File, maxBytes: number): Promise<string> {
+  if (archivo.size > maxBytes) {
+    throw new Error(`«${archivo.name}» pesa ${archivo.size} bytes y el límite es ${maxBytes} bytes.`)
   }
   const bytes = await archivo.arrayBuffer()
   try {
-    const texto = new TextDecoder("utf-8", { fatal: true }).decode(bytes)
-    return texto.charCodeAt(0) === 0xfeff ? texto.slice(1) : texto
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes)
   } catch {
-    throw new Error(`«${archivo.name}» no es UTF-8 válido.`)
+    throw new Error(`«${archivo.name}» no es un JSON en UTF-8.`)
   }
 }
 
 export function mapeoListo(mapeo: Mapeo): boolean {
   return Boolean(mapeo.identificador && mapeo.descripcion && mapeo.cantidad)
+}
+
+export function blobDesdeBase64(contenido: string, tipo: string): Blob {
+  const binario = atob(contenido)
+  const bytes = new Uint8Array(binario.length)
+  for (let indice = 0; indice < binario.length; indice += 1) bytes[indice] = binario.charCodeAt(indice)
+  return new Blob([bytes], { type: tipo })
 }

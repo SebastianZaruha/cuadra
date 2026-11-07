@@ -48,7 +48,19 @@ def normalizar_texto(texto: str) -> str:
 
 
 def sha256_texto(texto: str) -> str:
+    """Hash de la sesión v1: UTF-8 después de quitar un BOM inicial."""
     return hashlib.sha256(normalizar_texto(texto).encode("utf-8")).hexdigest()
+
+
+def sha256_bytes(datos: bytes) -> str:
+    """Hash de la sesión v2: los bytes del archivo, sin decodificar."""
+    return hashlib.sha256(datos).hexdigest()
+
+
+def como_bytes(contenido: str | bytes) -> bytes:
+    if isinstance(contenido, bytes):
+        return contenido
+    return contenido.encode("utf-8")
 
 
 def cantidad_canonica(texto: str) -> str | None:
@@ -78,9 +90,11 @@ def caracter_de_formula_texto(raw: str) -> str | None:
     return None
 
 
-def _contar_delimitadores(linea: str) -> tuple[int, int]:
-    comas = 0
-    puntos = 0
+_DELIMITADORES = (",", ";", "\t")
+
+
+def _contar_delimitadores(linea: str) -> dict[str, int]:
+    cuentas = {simbolo: 0 for simbolo in _DELIMITADORES}
     entre_comillas = False
     indice = 0
     while indice < len(linea):
@@ -90,13 +104,10 @@ def _contar_delimitadores(linea: str) -> tuple[int, int]:
                 indice += 2
                 continue
             entre_comillas = not entre_comillas
-        elif not entre_comillas:
-            if caracter == ",":
-                comas += 1
-            elif caracter == ";":
-                puntos += 1
+        elif not entre_comillas and caracter in cuentas:
+            cuentas[caracter] += 1
         indice += 1
-    return comas, puntos
+    return cuentas
 
 
 def resolver_delimitador(
@@ -104,13 +115,14 @@ def resolver_delimitador(
     elegido: str | None,
     fichero: str,
 ) -> tuple[str | None, dict | None]:
-    """La cabecera manda. Si hay coma y punto y coma, no se elige en silencio."""
+    """La cabecera manda. Si hay más de un delimitador, no se elige en silencio."""
     lineas = texto.splitlines()
     if not lineas:
         return None, error("fichero_vacio", mensajes.fichero_vacio(fichero), fichero)
-    comas, puntos = _contar_delimitadores(lineas[0])
+    cuentas = _contar_delimitadores(lineas[0])
+    presentes = {simbolo for simbolo, cantidad in cuentas.items() if cantidad > 0}
     if elegido is not None:
-        if elegido not in {",", ";"}:
+        if elegido not in _DELIMITADORES:
             return None, error(
                 "delimitador_ausente",
                 mensajes.delimitador_ausente(fichero),
@@ -118,9 +130,7 @@ def resolver_delimitador(
                 1,
                 None,
             )
-        propios = comas if elegido == "," else puntos
-        ajenos = puntos if elegido == "," else comas
-        if propios == 0 and ajenos > 0:
+        if cuentas[elegido] == 0 and presentes:
             return None, error(
                 "delimitador_no_coincide",
                 mensajes.delimitador_no_coincide(elegido, fichero),
@@ -128,7 +138,7 @@ def resolver_delimitador(
                 1,
                 None,
             )
-        if propios == 0:
+        if cuentas[elegido] == 0:
             return None, error(
                 "delimitador_ausente",
                 mensajes.delimitador_ausente(fichero),
@@ -137,18 +147,16 @@ def resolver_delimitador(
                 None,
             )
         return elegido, None
-    if comas > 0 and puntos > 0:
+    if len(presentes) > 1:
         return None, error(
             "delimitador_ambiguo",
-            mensajes.delimitador_ambiguo(fichero),
+            mensajes.delimitador_ambiguo(fichero, presentes),
             fichero,
             1,
             None,
         )
-    if comas > 0:
-        return ",", None
-    if puntos > 0:
-        return ";", None
+    if len(presentes) == 1:
+        return next(iter(presentes)), None
     return None, error(
         "delimitador_ausente",
         mensajes.delimitador_ausente(fichero),
@@ -184,6 +192,13 @@ class FicheroCargado:
     filas: list[Borrador]
     columnas: list[str] = field(default_factory=list)
     filas_datos: int = 0
+    formato: str | None = None
+    codificacion: str | None = None
+    hoja: str | None = None
+    hojas: list[str] = field(default_factory=list)
+    origen_hoja: str | None = None
+    origen_delimitador: str | None = None
+    sha256: str | None = None
 
 
 def _validar_mapeo(mapeo: dict, fichero: str) -> dict | None:
@@ -382,41 +397,30 @@ def _analizar_fila(
     )
 
 
-def leer_fichero(texto: str, *, fichero: str, mapeo: dict, delimitador: str | None) -> FicheroCargado:
-    texto = normalizar_texto(texto)
+def leer_fichero(
+    contenido: str | bytes,
+    *,
+    fichero: str,
+    mapeo: dict,
+    delimitador: str | None,
+    formato: str | None = None,
+    hoja: str | None = None,
+    nombre: str = "",
+) -> FicheroCargado:
     mapeo_mal = _validar_mapeo(mapeo, fichero)
+    preparado = preparar(
+        contenido,
+        fichero=fichero,
+        delimitador=delimitador,
+        formato=formato,
+        hoja=hoja,
+        nombre=nombre,
+    )
     if mapeo_mal:
-        return FicheroCargado(None, [mapeo_mal], [])
-    peso = len(texto.encode("utf-8"))
-    if peso > MAX_BYTES:
-        return FicheroCargado(
-            None,
-            [
-                error(
-                    "fichero_demasiado_grande",
-                    mensajes.fichero_demasiado_grande(fichero, peso, MAX_BYTES),
-                    fichero,
-                )
-            ],
-            [],
-        )
-    if texto.strip() == "":
-        return FicheroCargado(None, [error("fichero_vacio", mensajes.fichero_vacio(fichero), fichero)], [])
-
-    delim, error_delim = resolver_delimitador(texto, delimitador, fichero)
-    if error_delim or delim is None:
-        return FicheroCargado(None, [error_delim] if error_delim else [], [])
-
-    lector = csv.reader(StringIO(texto), delimiter=delim)
-    try:
-        cabecera = next(lector)
-    except StopIteration:
-        return FicheroCargado(delim, [error("sin_cabecera", mensajes.sin_cabecera(fichero), fichero)], [])
-    nombres = [celda.strip() for celda in cabecera]
-    cabecera_mal = _cabecera(nombres, fichero)
-    if cabecera_mal:
-        return FicheroCargado(delim, [cabecera_mal], [], columnas=nombres)
-
+        return _cargado(preparado, [mapeo_mal], [])
+    if preparado.errores:
+        return _cargado(preparado, preparado.errores, [])
+    nombres = preparado.columnas
     faltan: list[dict] = []
     indices: dict[str, int] = {}
     for campo in ("identificador", "descripcion", "cantidad"):
@@ -434,27 +438,7 @@ def leer_fichero(texto: str, *, fichero: str, mapeo: dict, delimitador: str | No
         else:
             indices[campo] = nombres.index(columna)
     if faltan:
-        return FicheroCargado(delim, faltan, [], columnas=nombres)
-
-    crudas: list[tuple[int, list[str]]] = []
-    for row in lector:
-        if _fila_vacia(row):
-            continue
-        crudas.append((lector.line_num, row))
-    if len(crudas) > MAX_FILAS:
-        return FicheroCargado(
-            delim,
-            [
-                error(
-                    "demasiadas_filas",
-                    mensajes.demasiadas_filas(fichero, len(crudas), MAX_FILAS),
-                    fichero,
-                )
-            ],
-            [],
-            columnas=nombres,
-            filas_datos=len(crudas),
-        )
+        return _cargado(preparado, faltan, [])
     filas = [
         _analizar_fila(
             numero,
@@ -464,92 +448,184 @@ def leer_fichero(texto: str, *, fichero: str, mapeo: dict, delimitador: str | No
             indices=indices,
             columnas={campo: mapeo[campo] for campo in ("identificador", "descripcion", "cantidad")},
         )
-        for numero, row in crudas
+        for numero, row in preparado.filas
     ]
-    return FicheroCargado(delim, [], filas, columnas=nombres, filas_datos=len(filas))
+    return _cargado(preparado, [], filas)
 
 
-def inspeccionar(csv_texto: str, *, delimitador: str | None = None, fichero: str = "A") -> dict:
-    """Vista previa para mapear columnas, antes de reconciliar."""
-    texto = normalizar_texto(csv_texto)
-    peso = len(texto.encode("utf-8"))
-    if peso > MAX_BYTES:
-        return _inspeccion(
-            False,
-            None,
-            None,
-            [],
-            [],
-            0,
-            [
+def preparar(
+    contenido: str | bytes,
+    *,
+    fichero: str,
+    delimitador: str | None = None,
+    formato: str | None = None,
+    hoja: str | None = None,
+    nombre: str = "",
+):
+    """Tabla de textos, o el error que impide llegar a ella."""
+    from cuadra.dominio.formatos import Preparado, preparar_estructurado, resolver_formato
+
+    datos = como_bytes(contenido)
+    resumen = sha256_bytes(datos)
+    if len(datos) > MAX_BYTES:
+        return Preparado(
+            sha256=resumen,
+            errores=[
                 error(
                     "fichero_demasiado_grande",
-                    mensajes.fichero_demasiado_grande(fichero, peso, MAX_BYTES),
+                    mensajes.fichero_demasiado_grande(fichero, len(datos), MAX_BYTES),
                     fichero,
                 )
             ],
         )
+    if datos.strip() == b"":
+        return Preparado(
+            sha256=resumen,
+            errores=[error("fichero_vacio", mensajes.fichero_vacio(fichero), fichero)],
+        )
+    formato_resuelto, fallo = resolver_formato(datos, nombre, formato, fichero)
+    if fallo or formato_resuelto is None:
+        return Preparado(sha256=resumen, errores=[fallo] if fallo else [])
+    if formato_resuelto == "csv":
+        tabla = _preparar_csv(datos, fichero=fichero, delimitador=delimitador)
+    else:
+        tabla = preparar_estructurado(datos, formato=formato_resuelto, fichero=fichero, hoja=hoja)
+        if not tabla.errores and tabla.columnas:
+            cabecera_mal = _cabecera(tabla.columnas, fichero)
+            if cabecera_mal:
+                tabla.errores = [cabecera_mal]
+    tabla.sha256 = resumen
+    return tabla
+
+
+def _preparar_csv(datos: bytes, *, fichero: str, delimitador: str | None):
+    from cuadra.dominio.formatos import Preparado, decodificar
+
+    try:
+        texto, codificacion = decodificar(datos)
+    except UnicodeDecodeError:
+        return Preparado(
+            formato="csv",
+            errores=[error("codificacion_invalida", mensajes.codificacion_invalida(fichero), fichero)],
+        )
     if texto.strip() == "":
-        return _inspeccion(
-            False,
-            None,
-            None,
-            [],
-            [],
-            0,
-            [error("fichero_vacio", mensajes.fichero_vacio(fichero), fichero)],
+        return Preparado(
+            formato="csv",
+            codificacion=codificacion,
+            errores=[error("fichero_vacio", mensajes.fichero_vacio(fichero), fichero)],
         )
     delim, error_delim = resolver_delimitador(texto, delimitador, fichero)
     origen = "elegido" if delimitador else "detectado"
     if error_delim or delim is None:
-        return _inspeccion(False, None, None, [], [], 0, [error_delim] if error_delim else [])
+        return Preparado(
+            formato="csv",
+            codificacion=codificacion,
+            origen_delimitador=None,
+            errores=[error_delim] if error_delim else [],
+        )
     lector = csv.reader(StringIO(texto), delimiter=delim)
     try:
         cabecera = next(lector)
     except StopIteration:
-        return _inspeccion(
-            False,
-            delim,
-            origen,
-            [],
-            [],
-            0,
-            [error("sin_cabecera", mensajes.sin_cabecera(fichero), fichero)],
+        return Preparado(
+            formato="csv",
+            codificacion=codificacion,
+            delimitador=delim,
+            origen_delimitador=origen,
+            errores=[error("sin_cabecera", mensajes.sin_cabecera(fichero), fichero)],
         )
     nombres = [celda.strip() for celda in cabecera]
     cabecera_mal = _cabecera(nombres, fichero)
     if cabecera_mal:
-        return _inspeccion(False, delim, origen, nombres, [], 0, [cabecera_mal])
-    muestra: list[dict[str, str]] = []
-    total = 0
+        return Preparado(
+            formato="csv",
+            codificacion=codificacion,
+            delimitador=delim,
+            origen_delimitador=origen,
+            columnas=nombres,
+            errores=[cabecera_mal],
+        )
+    crudas: list[tuple[int, list[str]]] = []
     for row in lector:
         if _fila_vacia(row):
             continue
-        total += 1
-        if len(muestra) < MAX_MUESTRA:
-            muestra.append(
-                {nombres[i]: (row[i] if i < len(row) else "") for i in range(len(nombres))}
-            )
-    if total > MAX_FILAS:
-        return _inspeccion(
-            False,
-            delim,
-            origen,
-            nombres,
-            muestra,
-            total,
-            [error("demasiadas_filas", mensajes.demasiadas_filas(fichero, total, MAX_FILAS), fichero)],
+        crudas.append((lector.line_num, row))
+    if len(crudas) > MAX_FILAS:
+        return Preparado(
+            formato="csv",
+            codificacion=codificacion,
+            delimitador=delim,
+            origen_delimitador=origen,
+            columnas=nombres,
+            errores=[error("demasiadas_filas", mensajes.demasiadas_filas(fichero, len(crudas), MAX_FILAS), fichero)],
         )
-    return _inspeccion(True, delim, origen, nombres, muestra, total, [])
+    return Preparado(
+        formato="csv",
+        codificacion=codificacion,
+        delimitador=delim,
+        origen_delimitador=origen,
+        columnas=nombres,
+        filas=crudas,
+    )
 
 
-def _inspeccion(ok, delimitador, origen, columnas, muestra, filas_datos, errores) -> dict:
+def inspeccionar(
+    contenido: str | bytes,
+    *,
+    delimitador: str | None = None,
+    fichero: str = "A",
+    formato: str | None = None,
+    hoja: str | None = None,
+    nombre: str = "",
+) -> dict:
+    """Vista previa para mapear columnas, antes de reconciliar."""
+    tabla = preparar(
+        contenido,
+        fichero=fichero,
+        delimitador=delimitador,
+        formato=formato,
+        hoja=hoja,
+        nombre=nombre,
+    )
+    muestra: list[dict[str, str]] = []
+    if not tabla.errores:
+        for _, row in tabla.filas[:MAX_MUESTRA]:
+            muestra.append(
+                {tabla.columnas[i]: (row[i] if i < len(row) else "") for i in range(len(tabla.columnas))}
+            )
+    return _inspeccion(tabla, muestra)
+
+
+def _cargado(tabla, errores: list[dict], filas: list[Borrador]) -> FicheroCargado:
+    return FicheroCargado(
+        tabla.delimitador,
+        errores,
+        filas,
+        columnas=tabla.columnas,
+        filas_datos=len(tabla.filas) if not errores else len(tabla.filas),
+        formato=tabla.formato,
+        codificacion=tabla.codificacion,
+        hoja=tabla.hoja,
+        hojas=list(tabla.hojas),
+        origen_hoja=tabla.origen_hoja,
+        origen_delimitador=tabla.origen_delimitador,
+        sha256=tabla.sha256,
+    )
+
+
+def _inspeccion(tabla, muestra: list[dict[str, str]]) -> dict:
     return {
-        "ok": ok,
-        "delimitador": delimitador,
-        "origen_delimitador": origen,
-        "columnas": columnas,
+        "ok": not tabla.errores,
+        "formato": tabla.formato,
+        "codificacion": tabla.codificacion,
+        "delimitador": tabla.delimitador,
+        "origen_delimitador": tabla.origen_delimitador,
+        "hoja": tabla.hoja,
+        "hojas": tabla.hojas,
+        "origen_hoja": tabla.origen_hoja,
+        "columnas": tabla.columnas,
         "muestra": muestra,
-        "filas_datos": filas_datos,
-        "errores": errores,
+        "filas_datos": len(tabla.filas),
+        "errores": tabla.errores,
+        "sha256": tabla.sha256,
     }

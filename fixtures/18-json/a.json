@@ -1,0 +1,4 @@
+[
+  {"sku": "J-1", "descripcion": "Tuerca", "cantidad": 10.50},
+  {"sku": "J-2", "descripcion": "Arandela", "cantidad": "3"}
+]

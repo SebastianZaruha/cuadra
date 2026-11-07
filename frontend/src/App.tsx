@@ -6,19 +6,25 @@ import { Button } from "@/components/ui/button"
 import {
   ErrorCuadra,
   abrirSesion,
+  blobDesdeBase64,
   exportar,
   guardarSesion,
   inspeccionar,
-  leerArchivo,
+  leerBytes,
+  leerTexto,
   mapeoListo,
   obtenerDemo,
   obtenerLimites,
   reconciliar,
 } from "./api.ts"
+import { Cielo } from "./componentes/Cielo.tsx"
 import { Cierre } from "./componentes/Cierre.tsx"
 import { BotonDemo, PanelFichero } from "./componentes/Ficheros.tsx"
+import { Graficas } from "./componentes/Graficas.tsx"
 import { TablaCuadre } from "./componentes/Tabla.tsx"
+import { TemaControl } from "./componentes/TemaControl.tsx"
 import { decisionesDesdeFilas, sugerirColumna } from "./opciones.ts"
+import { aplicarTema, preferenciaGuardada, temaEfectivo, type Preferencia } from "./tema.ts"
 import type {
   DecisionEnviada,
   Delimitador,
@@ -31,8 +37,7 @@ import type {
 } from "./tipos.ts"
 
 function armarFichero(
-  nombre: string,
-  texto: string,
+  base: { nombre: string; texto: string | null; contenidoBase64: string | null },
   inspeccion: Inspeccion,
   mapeoPreferido?: Mapeo,
 ): FicheroUi {
@@ -41,17 +46,23 @@ function armarFichero(
     descripcion: sugerirColumna(inspeccion.columnas, ["descripcion", "nombre"]),
     cantidad: sugerirColumna(inspeccion.columnas, ["cantidad", "stock"]),
   }
-  const base = mapeoPreferido ?? sugerido
+  const preferido = mapeoPreferido ?? sugerido
   const mapeo: Mapeo = {
-    identificador: inspeccion.columnas.includes(base.identificador) ? base.identificador : sugerido.identificador,
-    descripcion: inspeccion.columnas.includes(base.descripcion) ? base.descripcion : sugerido.descripcion,
-    cantidad: inspeccion.columnas.includes(base.cantidad) ? base.cantidad : sugerido.cantidad,
+    identificador: inspeccion.columnas.includes(preferido.identificador) ? preferido.identificador : sugerido.identificador,
+    descripcion: inspeccion.columnas.includes(preferido.descripcion) ? preferido.descripcion : sugerido.descripcion,
+    cantidad: inspeccion.columnas.includes(preferido.cantidad) ? preferido.cantidad : sugerido.cantidad,
   }
   return {
-    nombre,
-    texto,
+    nombre: base.nombre,
+    texto: base.texto,
+    contenidoBase64: base.contenidoBase64,
+    formato: inspeccion.formato,
+    codificacion: inspeccion.codificacion,
     delimitador: inspeccion.delimitador ?? "",
     origenDelimitador: inspeccion.origen_delimitador,
+    hoja: inspeccion.hoja,
+    hojas: inspeccion.hojas,
+    origenHoja: inspeccion.origen_hoja,
     columnas: inspeccion.columnas,
     muestra: inspeccion.muestra,
     filasDatos: inspeccion.filas_datos,
@@ -78,11 +89,14 @@ export default function App() {
   const [filtro, setFiltro] = useState<Filtro>("todas")
   const [busqueda, setBusqueda] = useState("")
   const [enlaces, setEnlaces] = useState<{ nombre: string; url: string }[]>([])
+  const [preferencia, setPreferencia] = useState<Preferencia>(() => preferenciaGuardada())
+  const [relojTema, setRelojTema] = useState(0)
+  const tema = relojTema >= 0 ? temaEfectivo(preferencia) : "claro"
 
-  function reemplazarEnlaces(siguientes: { nombre: string; contenido: string; tipo: string }[]) {
+  function reemplazarEnlaces(siguientes: { nombre: string; blob: Blob }[]) {
     const creados = siguientes.map((archivo) => ({
       nombre: archivo.nombre,
-      url: URL.createObjectURL(new Blob([archivo.contenido], { type: archivo.tipo })),
+      url: URL.createObjectURL(archivo.blob),
     }))
     setEnlaces((anteriores) => {
       for (const enlace of anteriores) URL.revokeObjectURL(enlace.url)
@@ -101,7 +115,22 @@ export default function App() {
 
   useEffect(() => {
     void cargarLimites()
+    aplicarTema(preferenciaGuardada())
+    const media = window.matchMedia("(prefers-color-scheme: dark)")
+    const alSistema = () => {
+      if (preferenciaGuardada() === "sistema") {
+        aplicarTema("sistema")
+        setRelojTema((valor) => valor + 1)
+      }
+    }
+    media.addEventListener("change", alSistema)
+    return () => media.removeEventListener("change", alSistema)
   }, [])
+
+  function elegirTema(siguiente: Preferencia) {
+    setPreferencia(siguiente)
+    aplicarTema(siguiente)
+  }
 
   function limpiarCuadre() {
     setResultado(null)
@@ -109,12 +138,24 @@ export default function App() {
     setAviso("")
   }
 
-  async function incorporar(lado: "A" | "B", nombre: string, texto: string, delimitador: Delimitador | null, mapeo?: Mapeo) {
+  async function incorporar(
+    lado: "A" | "B",
+    base: { nombre: string; texto: string | null; contenidoBase64: string | null },
+    opciones: { delimitador: Delimitador | null; hoja: string | null },
+    mapeo?: Mapeo,
+  ) {
     setOcupado(true)
     setAviso("")
     try {
-      const vista = await inspeccionar(texto, lado, delimitador)
-      const fichero = armarFichero(nombre, texto, vista, mapeo)
+      const vista = await inspeccionar({
+        csv: base.texto,
+        contenidoBase64: base.contenidoBase64,
+        nombre: base.nombre,
+        fichero: lado,
+        delimitador: opciones.delimitador,
+        hoja: opciones.hoja,
+      })
+      const fichero = armarFichero(base, vista, mapeo)
       if (lado === "A") setFicheroA(fichero)
       else setFicheroB(fichero)
       limpiarCuadre()
@@ -128,8 +169,8 @@ export default function App() {
   async function alArchivo(lado: "A" | "B", archivo: File) {
     if (!limites) return
     try {
-      const texto = await leerArchivo(archivo, limites.max_bytes)
-      await incorporar(lado, archivo.name, texto, null)
+      const contenidoBase64 = await leerBytes(archivo, limites.max_bytes)
+      await incorporar(lado, { nombre: archivo.name, texto: null, contenidoBase64 }, { delimitador: null, hoja: null })
     } catch (error) {
       setAviso(textoError(error))
     }
@@ -141,11 +182,25 @@ export default function App() {
     try {
       const demo = await obtenerDemo()
       const [vistaA, vistaB] = await Promise.all([
-        inspeccionar(demo.csv_a, "A", demo.delimitador_a),
-        inspeccionar(demo.csv_b, "B", demo.delimitador_b),
+        inspeccionar({
+          csv: demo.csv_a,
+          contenidoBase64: null,
+          nombre: demo.nombre_a,
+          fichero: "A",
+          delimitador: demo.delimitador_a,
+          hoja: null,
+        }),
+        inspeccionar({
+          csv: demo.csv_b,
+          contenidoBase64: null,
+          nombre: demo.nombre_b,
+          fichero: "B",
+          delimitador: demo.delimitador_b,
+          hoja: null,
+        }),
       ])
-      setFicheroA(armarFichero(demo.nombre_a, demo.csv_a, vistaA, demo.mapeo_a))
-      setFicheroB(armarFichero(demo.nombre_b, demo.csv_b, vistaB, demo.mapeo_b))
+      setFicheroA(armarFichero({ nombre: demo.nombre_a, texto: demo.csv_a, contenidoBase64: null }, vistaA, demo.mapeo_a))
+      setFicheroB(armarFichero({ nombre: demo.nombre_b, texto: demo.csv_b, contenidoBase64: null }, vistaB, demo.mapeo_b))
       setResultado(null)
       setDecisiones([])
       setAviso(demo.relato)
@@ -188,8 +243,16 @@ export default function App() {
     try {
       const archivos = await exportar(ficheroA, ficheroB, decisiones, modo)
       reemplazarEnlaces([
-        { nombre: archivos.nombre_inventario, contenido: archivos.inventario_csv, tipo: "text/csv;charset=utf-8" },
-        { nombre: archivos.nombre_historial, contenido: archivos.historial_csv, tipo: "text/csv;charset=utf-8" },
+        { nombre: archivos.nombre_inventario, blob: new Blob([archivos.inventario_csv], { type: "text/csv;charset=utf-8" }) },
+        { nombre: archivos.nombre_historial, blob: new Blob([archivos.historial_csv], { type: "text/csv;charset=utf-8" }) },
+        {
+          nombre: archivos.nombre_inventario_xlsx,
+          blob: blobDesdeBase64(archivos.inventario_xlsx_base64, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        },
+        {
+          nombre: archivos.nombre_historial_xlsx,
+          blob: blobDesdeBase64(archivos.historial_xlsx_base64, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        },
       ])
     } catch (error) {
       setAviso(textoError(error))
@@ -204,7 +267,7 @@ export default function App() {
     setAviso("")
     try {
       const sesion = await guardarSesion(ficheroA, ficheroB, decisiones)
-      reemplazarEnlaces([{ nombre: sesion.nombre, contenido: sesion.texto, tipo: "application/json" }])
+      reemplazarEnlaces([{ nombre: sesion.nombre, blob: new Blob([sesion.texto], { type: "application/json" }) }])
     } catch (error) {
       setAviso(textoError(error))
     } finally {
@@ -214,13 +277,13 @@ export default function App() {
 
   async function alAbrir(archivo: File) {
     if (!ficheroA || !ficheroB || !limites) {
-      setAviso("Carga primero los dos CSV que corresponden a la sesión.")
+      setAviso("Carga primero los dos ficheros que corresponden a la sesión.")
       return
     }
     setOcupado(true)
     setAviso("")
     try {
-      const texto = await leerArchivo(archivo, limites.max_bytes)
+      const texto = await leerTexto(archivo, limites.max_bytes)
       let sesion: unknown
       try {
         sesion = JSON.parse(texto)
@@ -242,25 +305,25 @@ export default function App() {
     }
   }
 
-  const listoParaCuadrar = Boolean(
-    ficheroA &&
-      ficheroB &&
-      ficheroA.delimitador &&
-      ficheroB.delimitador &&
-      ficheroA.errores.length === 0 &&
-      ficheroB.errores.length === 0 &&
-      mapeoListo(ficheroA.mapeo) &&
-      mapeoListo(ficheroB.mapeo),
-  )
+  function ficheroListo(fichero: FicheroUi | null) {
+    if (!fichero || fichero.errores.length > 0 || !mapeoListo(fichero.mapeo)) return false
+    if (fichero.formato === "csv" && !fichero.delimitador) return false
+    if ((fichero.formato === "xlsx" || fichero.formato === "ods") && fichero.hojas.length > 1 && !fichero.hoja) return false
+    return true
+  }
+
+  const listoParaCuadrar = ficheroListo(ficheroA) && ficheroListo(ficheroB)
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6">
+    <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6">
+      <Cielo tema={tema} />
       <a href="#cuadre" className="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:bg-card focus:p-2">
         Saltar al cuadre
       </a>
-      <header className="grid gap-2">
-        <p className="text-sm font-medium tracking-wide text-[#1f6b4a] uppercase">Inventario</p>
-        <h1 className="font-serif text-4xl leading-none sm:text-5xl">Cuadra</h1>
+      <header className="cristal flex flex-wrap items-end justify-between gap-4 p-5 sm:p-6">
+        <div className="grid gap-2">
+        <p className="ojo">Inventario</p>
+        <h1 className="titulo text-4xl leading-none sm:text-5xl">Cuadra</h1>
         <p className="max-w-2xl text-base text-muted-foreground">
           Compara dos exportaciones de inventario y deja a la vista lo que cambió, lo que falta y lo que no se puede
           emparejar con seguridad. No adivina claves ni sustituye a un ERP.
@@ -271,6 +334,8 @@ export default function App() {
             fichero. Como mucho {limites.max_decimales} decimales. Sesión versión {limites.schema_version}.
           </p>
         ) : null}
+        </div>
+        <TemaControl preferencia={preferencia} onCambio={elegirTema} />
       </header>
 
       {falloLimites ? (
@@ -295,7 +360,7 @@ export default function App() {
       <div aria-busy={ocupado} className="grid gap-6">
         <section className="grid gap-3" aria-labelledby="titulo-ficheros">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="titulo-ficheros" className="font-serif text-2xl">
+            <h2 id="titulo-ficheros" className="titulo text-2xl">
               Ficheros
             </h2>
             <BotonDemo onClick={() => void alDemo()} disabled={ocupado || !limites} />
@@ -312,7 +377,24 @@ export default function App() {
               maxBytes={limites?.max_bytes ?? 1_048_576}
               onArchivo={(archivo) => void alArchivo("A", archivo)}
               onDelimitador={(delimitador) => {
-                if (ficheroA) void incorporar("A", ficheroA.nombre, ficheroA.texto, delimitador, ficheroA.mapeo)
+                if (ficheroA) {
+                  void incorporar(
+                    "A",
+                    { nombre: ficheroA.nombre, texto: ficheroA.texto, contenidoBase64: ficheroA.contenidoBase64 },
+                    { delimitador, hoja: ficheroA.hoja },
+                    ficheroA.mapeo,
+                  )
+                }
+              }}
+              onHoja={(hoja) => {
+                if (ficheroA) {
+                  void incorporar(
+                    "A",
+                    { nombre: ficheroA.nombre, texto: ficheroA.texto, contenidoBase64: ficheroA.contenidoBase64 },
+                    { delimitador: ficheroA.delimitador || null, hoja },
+                    ficheroA.mapeo,
+                  )
+                }
               }}
               onMapeo={(campo, columna) => {
                 setFicheroA((actual) => (actual ? { ...actual, mapeo: { ...actual.mapeo, [campo]: columna } } : actual))
@@ -325,7 +407,24 @@ export default function App() {
               maxBytes={limites?.max_bytes ?? 1_048_576}
               onArchivo={(archivo) => void alArchivo("B", archivo)}
               onDelimitador={(delimitador) => {
-                if (ficheroB) void incorporar("B", ficheroB.nombre, ficheroB.texto, delimitador, ficheroB.mapeo)
+                if (ficheroB) {
+                  void incorporar(
+                    "B",
+                    { nombre: ficheroB.nombre, texto: ficheroB.texto, contenidoBase64: ficheroB.contenidoBase64 },
+                    { delimitador, hoja: ficheroB.hoja },
+                    ficheroB.mapeo,
+                  )
+                }
+              }}
+              onHoja={(hoja) => {
+                if (ficheroB) {
+                  void incorporar(
+                    "B",
+                    { nombre: ficheroB.nombre, texto: ficheroB.texto, contenidoBase64: ficheroB.contenidoBase64 },
+                    { delimitador: ficheroB.delimitador || null, hoja },
+                    ficheroB.mapeo,
+                  )
+                }
               }}
               onMapeo={(campo, columna) => {
                 setFicheroB((actual) => (actual ? { ...actual, mapeo: { ...actual.mapeo, [campo]: columna } } : actual))
@@ -333,13 +432,27 @@ export default function App() {
               }}
             />
           </div>
-          <Button type="button" disabled={!listoParaCuadrar || ocupado} onClick={() => void alReconciliar()}>
+          <Button type="button" className="accion" disabled={!listoParaCuadrar || ocupado} onClick={() => void alReconciliar()}>
             {ocupado ? "Leyendo ficheros…" : "Reconciliar"}
           </Button>
         </section>
 
         {resultado?.ok && resultado.resumen ? (
           <>
+            <Graficas
+              filas={resultado.filas}
+              resumen={resultado.resumen}
+              filtro={filtro}
+              busqueda={busqueda}
+              onFiltro={(siguiente) => {
+                setFiltro(siguiente)
+                setBusqueda("")
+              }}
+              onClave={(identificador) => {
+                setFiltro("todas")
+                setBusqueda(identificador)
+              }}
+            />
             <TablaCuadre
               filas={resultado.filas}
               resumen={resultado.resumen}
@@ -365,7 +478,7 @@ export default function App() {
       </div>
       <footer className="pb-8 text-sm text-muted-foreground">
         Cuadra no guarda los ficheros. Si cierras la pestaña sin descargar la sesión, el cuadre se pierde. Los números
-        usan punto decimal; las descripciones se recortan solo en los extremos y se comparan tal cual.
+        usan punto decimal. El Excel y el ODS se leen con ese punto, sin convertir la coma de la pantalla.
       </footer>
     </div>
   )
