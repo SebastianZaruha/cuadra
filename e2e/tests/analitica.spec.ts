@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { chromium, expect, test } from "@playwright/test"
 
 test("una elección de más de 12 meses vuelve a mostrar el banner", async ({ page }) => {
   await page.addInitScript(() => {
@@ -38,15 +38,19 @@ test("una elección vigente no muestra el banner", async ({ page }) => {
 
 test("guardar la analítica en el panel envía config y page_view", async ({ page }) => {
   const anuncios: string[] = []
+  const vistas: string[] = []
   page.on("request", (peticion) => {
-    if (/doubleclick|\/ads\/ga-audiences/.test(peticion.url())) anuncios.push(peticion.url())
+    const url = peticion.url()
+    if (/doubleclick|\/ads\/ga-audiences/.test(url)) anuncios.push(url)
+    if (url.includes("/g/collect") && /(?:^|[?&])en=page_view(?:&|$)/.test(url)) vistas.push(url)
   })
   await page.goto("/")
   await page.getByRole("button", { name: "Configurar", exact: true }).click()
   await page.getByRole("switch", { name: /Analítica \(Google Analytics 4/ }).check()
-  const collect = page.waitForRequest((peticion) => peticion.url().includes("/g/collect"))
   await page.getByRole("button", { name: "Guardar", exact: true }).click()
-  await collect
+  await expect.poll(() => vistas.length, { timeout: 10000 }).toBeGreaterThan(0)
+  await page.waitForTimeout(1500)
+  expect(vistas).toHaveLength(1)
   const ordenes = await page.evaluate(() =>
     (window.dataLayer ?? []).map((entrada) => Array.from(entrada as ArrayLike<unknown>)),
   )
@@ -57,8 +61,40 @@ test("guardar la analítica en el panel envía config y page_view", async ({ pag
     cookie_domain: "none",
     send_page_view: true,
   })
-  expect(ordenes.some((orden) => orden[0] === "event" && orden[1] === "page_view")).toBe(true)
+  expect(ordenes.some((orden) => orden[0] === "event" && orden[1] === "page_view")).toBe(false)
+  const configsConVista = ordenes.filter((orden) => orden[0] === "config" && (orden[2] as { send_page_view?: boolean } | undefined)?.send_page_view === true)
+  expect(configsConVista).toHaveLength(1)
   expect(anuncios).toEqual([])
+})
+
+test("aceptar envía un solo page_view", async ({ page }) => {
+  const vistas: string[] = []
+  page.on("request", (peticion) => {
+    const url = peticion.url()
+    if (url.includes("/g/collect") && /(?:^|[?&])en=page_view(?:&|$)/.test(url)) vistas.push(url)
+  })
+  await page.goto("/")
+  await page.getByRole("button", { name: "Aceptar", exact: true }).click()
+  await expect.poll(() => vistas.length, { timeout: 10000 }).toBeGreaterThan(0)
+  await page.waitForTimeout(1500)
+  expect(vistas).toHaveLength(1)
+})
+
+test("la cookie queda en el host cuadra y no en el dominio padre", async () => {
+  const browser = await chromium.launch({
+    args: ["--host-resolver-rules=MAP cuadra.sebastianzaruha.com 127.0.0.1"],
+  })
+  const page = await browser.newPage()
+  await page.goto("http://cuadra.sebastianzaruha.com:43123/", { waitUntil: "domcontentloaded" })
+  await page.getByRole("button", { name: "Aceptar", exact: true }).click()
+  await expect.poll(async () => (await page.context().cookies()).some((cookie) => cookie.name === "_ga")).toBe(true)
+  const cookies = (await page.context().cookies()).filter((cookie) => cookie.name.startsWith("_ga"))
+  expect(cookies.length).toBeGreaterThan(0)
+  for (const cookie of cookies) {
+    expect(cookie.domain).toBe("cuadra.sebastianzaruha.com")
+    expect(cookie.domain.startsWith(".")).toBe(false)
+  }
+  await browser.close()
 })
 
 test("rechazar intenta borrar _ga y la cookie residual del dominio padre", async ({ page }) => {

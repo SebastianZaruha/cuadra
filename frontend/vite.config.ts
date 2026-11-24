@@ -17,6 +17,7 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 43123,
+    allowedHosts: true,
     fs: { allow: [path.resolve(raiz, "..")] },
   },
   preview: {
