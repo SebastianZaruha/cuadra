@@ -86,7 +86,11 @@ export function TablaCuadre({
                 <FilaTabla
                   key={claveFila(fila)}
                   fila={fila}
-                  errores={erroresDecision.filter((error) => error.mensaje.includes(`«${fila.identificador}»`))}
+                  errores={erroresDecision.filter((error) =>
+                    error.identificador
+                      ? error.identificador === fila.identificador
+                      : error.mensaje.includes(`«${fila.identificador}»`),
+                  )}
                   onDecision={onDecision}
                   guardando={guardando}
                 />

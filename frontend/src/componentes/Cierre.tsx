@@ -12,9 +12,21 @@ type Props = {
   onGuardar: () => void
   onAbrir: (archivo: File) => void
   enlaces: { nombre: string; url: string }[]
+  onImprimir: () => void
+  onDiferencias: () => void
 }
 
-export function Cierre({ resumen, completaPermitida, ocupado, onExportar, onGuardar, onAbrir, enlaces }: Props) {
+export function Cierre({
+  resumen,
+  completaPermitida,
+  ocupado,
+  onExportar,
+  onGuardar,
+  onAbrir,
+  enlaces,
+  onImprimir,
+  onDiferencias,
+}: Props) {
   const ref = usePanelVidrio<HTMLElement>()
   const aviso = completaPermitida
     ? "No quedan pendientes ni bloqueados. El inventario y el historial salen marcados como completos."
@@ -40,7 +52,7 @@ export function Cierre({ resumen, completaPermitida, ocupado, onExportar, onGuar
       <div className="controles mt-4">
         <button
           type="button"
-          className="control principal"
+          className="boton-primario"
           disabled={!completaPermitida || ocupado}
           aria-describedby="aviso-exportacion"
           onClick={() => onExportar("completa")}
@@ -52,6 +64,12 @@ export function Cierre({ resumen, completaPermitida, ocupado, onExportar, onGuar
         </button>
         <button type="button" className="control" disabled={ocupado} onClick={onGuardar}>
           Guardar sesión
+        </button>
+        <button type="button" className="control" onClick={onImprimir}>
+          Imprimir informe
+        </button>
+        <button type="button" className="control" onClick={onDiferencias}>
+          Descargar diferencias
         </button>
       </div>
       {enlaces.length > 0 ? (

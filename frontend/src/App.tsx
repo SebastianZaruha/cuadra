@@ -15,12 +15,21 @@ import {
   obtenerLimites,
   reconciliar,
 } from "./api.ts"
+import { analiticaPreparada } from "./analitica.ts"
+import { borrarBorrador, guardarBorrador, leerBorrador, type Borrador } from "./borrador.ts"
+import { BannerAnalitica } from "./componentes/BannerAnalitica.tsx"
 import { Barra } from "./componentes/Barra.tsx"
 import { Cierre } from "./componentes/Cierre.tsx"
 import { AccionReconciliar, PanelFichero } from "./componentes/Ficheros.tsx"
+import { Informe } from "./componentes/Informe.tsx"
+import { Paleta, type Orden } from "./componentes/Paleta.tsx"
 import { Portada } from "./componentes/Portada.tsx"
 import { TablaCuadre } from "./componentes/Tabla.tsx"
+import { costesPorIdentificador, convertirComaDecimal, leerTextoLocal } from "./csvLocal.ts"
+import { deshacer, pilaVacia, recordar, rehacer, type Pila } from "./historial.ts"
 import { decisionesDesdeFilas, sugerirColumna } from "./opciones.ts"
+import { guardarPlantilla, leerPlantillas, type Plantilla } from "./plantillas.ts"
+import { csvDiferencias, dentroDeTolerancia, valorDiferencias } from "./utilCuadre.ts"
 import type {
   DecisionEnviada,
   Delimitador,
@@ -32,7 +41,13 @@ import type {
   Resultado,
 } from "./tipos.ts"
 
-function armarFichero(nombre: string, texto: string, inspeccion: Inspeccion, mapeoPreferido?: Mapeo): FicheroUi {
+function armarFichero(
+  nombre: string,
+  texto: string,
+  inspeccion: Inspeccion,
+  mapeoPreferido?: Mapeo,
+  codificacion = "utf-8",
+): FicheroUi {
   const sugerido: Mapeo = {
     identificador: sugerirColumna(inspeccion.columnas, ["sku", "codigo", "id"]),
     descripcion: sugerirColumna(inspeccion.columnas, ["descripcion", "nombre"]),
@@ -54,6 +69,7 @@ function armarFichero(nombre: string, texto: string, inspeccion: Inspeccion, map
     filasDatos: inspeccion.filas_datos,
     errores: inspeccion.errores,
     mapeo,
+    codificacion,
   }
 }
 
@@ -80,6 +96,20 @@ export default function App() {
   const [filtro, setFiltro] = useState<Filtro>("todas")
   const [busqueda, setBusqueda] = useState("")
   const [enlaces, setEnlaces] = useState<{ nombre: string; url: string }[]>([])
+  const [pila, setPila] = useState<Pila<DecisionEnviada[]>>(pilaVacia())
+  const [borradorActivo, setBorradorActivo] = useState(false)
+  const [plantillas, setPlantillas] = useState<Plantilla[]>(() => leerPlantillas())
+  const [costeA, setCosteA] = useState("")
+  const [costeB, setCosteB] = useState("")
+  const [tolerancia, setTolerancia] = useState("0")
+  const [motivoTolerancia, setMotivoTolerancia] = useState("")
+  const [paletaAbierta, setPaletaAbierta] = useState(false)
+  const decisionesRef = useRef(decisiones)
+  const pilaRef = useRef(pila)
+  useEffect(() => {
+    decisionesRef.current = decisiones
+    pilaRef.current = pila
+  })
 
   function reemplazarEnlaces(siguientes: { nombre: string; contenido: string; tipo: string }[]) {
     const creados = siguientes.map((archivo) => ({
@@ -95,6 +125,7 @@ export default function App() {
   function limpiarCuadre() {
     setResultado(null)
     setDecisiones([])
+    setPila(pilaVacia())
     setAviso("")
     reemplazarEnlaces([])
   }
@@ -169,11 +200,54 @@ export default function App() {
   useEffect(() => {
     let vivo = true
     const gen = ++generacion.current
-    void cargarDemo(gen, () => vivo, false)
+    const guardado = leerBorrador()
+    if (guardado) void restaurarBorrador(guardado, gen, () => vivo)
+    else void cargarDemo(gen, () => vivo, false)
     return () => {
       vivo = false
     }
   }, [])
+
+  useEffect(() => {
+    function tecla(evento: KeyboardEvent) {
+      const meta = evento.metaKey || evento.ctrlKey
+      if (meta && evento.key.toLowerCase() === "k") {
+        evento.preventDefault()
+        setPaletaAbierta((abierta) => !abierta)
+        return
+      }
+      if (!meta || evento.key.toLowerCase() !== "z" || paletaAbierta) return
+      const etiqueta = (evento.target as HTMLElement | null)?.tagName
+      if (etiqueta === "INPUT" || etiqueta === "TEXTAREA" || etiqueta === "SELECT") return
+      evento.preventDefault()
+      if (evento.shiftKey) aplicarHistorial(rehacer(pilaRef.current, decisionesRef.current))
+      else aplicarHistorial(deshacer(pilaRef.current, decisionesRef.current))
+    }
+    window.addEventListener("keydown", tecla)
+    return () => window.removeEventListener("keydown", tecla)
+  }, [paletaAbierta])
+
+  useEffect(() => {
+    if (!borradorActivo || !ficheroA || !ficheroB) return
+    const borrador: Borrador = {
+      version: 1,
+      nombreA: ficheroA.nombre,
+      textoA: ficheroA.texto,
+      delimitadorA: ficheroA.delimitador,
+      mapeoA: ficheroA.mapeo,
+      codificacionA: ficheroA.codificacion,
+      nombreB: ficheroB.nombre,
+      textoB: ficheroB.texto,
+      delimitadorB: ficheroB.delimitador,
+      mapeoB: ficheroB.mapeo,
+      codificacionB: ficheroB.codificacion,
+      decisiones,
+      costeA,
+      costeB,
+      tolerancia,
+    }
+    guardarBorrador(borrador)
+  }, [borradorActivo, ficheroA, ficheroB, decisiones, costeA, costeB, tolerancia])
 
   async function incorporar(
     lado: "A" | "B",
@@ -182,13 +256,14 @@ export default function App() {
     delimitador: Delimitador | null,
     mapeo: Mapeo | undefined,
     gen: number,
+    codificacion = "utf-8",
   ) {
     setOcupado(true)
     setAviso("")
     try {
       const vista = await inspeccionar(texto, lado, delimitador)
       if (generacion.current !== gen) return
-      const fichero = armarFichero(nombre, texto, vista, mapeo)
+      const fichero = armarFichero(nombre, texto, vista, mapeo, codificacion)
       if (lado === "A") setFicheroA(fichero)
       else setFicheroB(fichero)
       limpiarCuadre()
@@ -206,11 +281,11 @@ export default function App() {
       return
     }
     try {
-      const texto = await leerArchivo(archivo, limites.max_bytes)
+      const leido = await leerTextoLocal(archivo, limites.max_bytes)
       const gen = ++generacion.current
       setMuestra(false)
       setRelato("")
-      await incorporar(lado, archivo.name, texto, null, undefined, gen)
+      await incorporar(lado, archivo.name.replace(/\.xlsx?$/i, ".csv"), leido.texto, null, undefined, gen, leido.codificacion)
     } catch (error) {
       setAviso(textoError(error))
     }
@@ -247,10 +322,62 @@ export default function App() {
     }
   }
 
+  function aplicarHistorial(paso: { pila: Pila<DecisionEnviada[]>; valor: DecisionEnviada[] } | null) {
+    if (!paso) return
+    setPila(paso.pila)
+    setDecisiones(paso.valor)
+    void alReconciliar(paso.valor)
+  }
+
+  function alDeshacer() {
+    aplicarHistorial(deshacer(pilaRef.current, decisionesRef.current))
+  }
+
+  function alRehacer() {
+    aplicarHistorial(rehacer(pilaRef.current, decisionesRef.current))
+  }
+
   async function alDecision(decision: DecisionEnviada) {
-    const siguientes = [...decisiones.filter((item) => item.identificador !== decision.identificador), decision]
+    setPila((actual) => recordar(actual, decisionesRef.current))
+    const siguientes = [...decisionesRef.current.filter((item) => item.identificador !== decision.identificador), decision]
     setDecisiones(siguientes)
     await alReconciliar(siguientes)
+  }
+
+  async function restaurarBorrador(guardado: Borrador, gen: number, sigue: () => boolean) {
+    const actual = () => sigue() && generacion.current === gen
+    setOcupado(true)
+    setCargandoMuestra(true)
+    setBorradorActivo(true)
+    setCosteA(guardado.costeA)
+    setCosteB(guardado.costeB)
+    setTolerancia(guardado.tolerancia)
+    try {
+      const [vistaA, vistaB] = await Promise.all([
+        inspeccionar(guardado.textoA, "A", guardado.delimitadorA || null),
+        inspeccionar(guardado.textoB, "B", guardado.delimitadorB || null),
+      ])
+      if (!actual()) return
+      const a = armarFichero(guardado.nombreA, guardado.textoA, vistaA, guardado.mapeoA, guardado.codificacionA)
+      const b = armarFichero(guardado.nombreB, guardado.textoB, vistaB, guardado.mapeoB, guardado.codificacionB)
+      const cuadre = await reconciliar(a, b, guardado.decisiones)
+      if (!actual()) return
+      setFicheroA(a)
+      setFicheroB(b)
+      setMuestra(false)
+      setRelato("")
+      setResultado(cuadre)
+      setDecisiones(cuadre.ok ? decisionesDesdeFilas(cuadre.filas) : guardado.decisiones)
+      setAviso("Borrador local restaurado. Los CSV están solo en este navegador.")
+    } catch (error) {
+      if (!actual()) return
+      setFalloMuestra(textoError(error))
+    } finally {
+      if (actual()) {
+        setOcupado(false)
+        setCargandoMuestra(false)
+      }
+    }
   }
 
   async function alExportar(modo: "completa" | "parcial") {
@@ -331,15 +458,81 @@ export default function App() {
   )
   const hayCuadre = Boolean(resultado?.ok && resultado.resumen)
   const esperandoReconciliar = listoParaCuadrar && resultado === null && !cargandoMuestra && !ocupado
+  const toleranciaNumero = Number(tolerancia.replace(",", "."))
+  const filasVisibles = resultado?.ok ? resultado.filas : []
+  const dentro = filasVisibles.filter((fila) => dentroDeTolerancia(fila, toleranciaNumero) && fila.tipo !== "bloqueados" && fila.estado === "pendiente")
+  const costes = new Map<string, number>()
+  if (ficheroA?.delimitador && costeA) {
+    for (const [clave, numero] of costesPorIdentificador(ficheroA.texto, ficheroA.delimitador, ficheroA.mapeo.identificador, costeA)) {
+      costes.set(clave, numero)
+    }
+  }
+  if (ficheroB?.delimitador && costeB) {
+    for (const [clave, numero] of costesPorIdentificador(ficheroB.texto, ficheroB.delimitador, ficheroB.mapeo.identificador, costeB)) {
+      if (!costes.has(clave)) costes.set(clave, numero)
+    }
+  }
+  const valor = valorDiferencias(filasVisibles, costes)
+
+  function aceptarTolerancia() {
+    const motivo = motivoTolerancia.trim()
+    if (!motivo || dentro.length === 0) return
+    setPila((actual) => recordar(actual, decisionesRef.current))
+    const siguientes = [...decisionesRef.current]
+    for (const fila of dentro) {
+      if (fila.tipo === "bloqueados") continue
+      const indice = siguientes.findIndex((item) => item.identificador === fila.identificador)
+      const decision: DecisionEnviada = { identificador: fila.identificador, tipo: "elegir_A", motivo }
+      if (indice >= 0) siguientes[indice] = decision
+      else siguientes.push(decision)
+    }
+    setDecisiones(siguientes)
+    void alReconciliar(siguientes)
+  }
+
+  function descargarDiferencias() {
+    const contenido = csvDiferencias(filasVisibles)
+    const url = URL.createObjectURL(new Blob([contenido], { type: "text/csv;charset=utf-8" }))
+    const enlace = document.createElement("a")
+    enlace.href = url
+    enlace.download = "cuadra-diferencias.csv"
+    enlace.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const ordenes: Orden[] = [
+    { id: "demo", etiqueta: "Cargar demostración", run: alDemo },
+    { id: "a", etiqueta: "Subir fichero A", run: () => document.getElementById("cuadra-archivo-a")?.click() },
+    { id: "b", etiqueta: "Subir fichero B", run: () => document.getElementById("cuadra-archivo-b")?.click() },
+    { id: "pendientes", etiqueta: "Ver pendientes", run: () => setFiltro("pendientes") },
+    { id: "buscar", etiqueta: "Ir a la búsqueda", run: () => document.getElementById("cuadre")?.scrollIntoView() },
+    {
+      id: "completa",
+      etiqueta: "Exportar inventario completo",
+      disabled: !resultado?.exportacion_completa_permitida || ocupado,
+      run: () => void alExportar("completa"),
+    },
+    { id: "parcial", etiqueta: "Exportar parcial", disabled: !hayCuadre || ocupado, run: () => void alExportar("parcial") },
+    { id: "diferencias", etiqueta: "Descargar diferencias", disabled: !hayCuadre, run: descargarDiferencias },
+    { id: "imprimir", etiqueta: "Imprimir informe", disabled: !hayCuadre, run: () => window.print() },
+    { id: "deshacer", etiqueta: "Deshacer", disabled: pila.pasado.length === 0, run: alDeshacer },
+    { id: "rehacer", etiqueta: "Rehacer", disabled: pila.futuro.length === 0, run: alRehacer },
+    {
+      id: "borrador",
+      etiqueta: borradorActivo ? "Borrar borrador local" : "Activar borrador en este navegador",
+      run: () => {
+        if (borradorActivo) {
+          borrarBorrador()
+          setBorradorActivo(false)
+          setAviso("Borrador borrado de este navegador.")
+        } else setBorradorActivo(true)
+      },
+    },
+  ]
 
   return (
     <>
-      <div className="fondo" aria-hidden="true">
-        <span className="blob blob-pino" />
-        <span className="blob blob-cobre" />
-        <span className="blob blob-ambar" />
-        <span className="blob blob-azul" />
-      </div>
+      <div className="fondo" aria-hidden="true" />
       <div className="aplicacion">
         <a href="#cuadre" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-[#f4f1ea] focus:p-2 focus:text-[#1c2430]">
           Saltar al cuadre
@@ -348,6 +541,8 @@ export default function App() {
           Ir a los ficheros
         </a>
         <Barra muestra={muestra} ocupado={ocupado} />
+        {analiticaPreparada() ? <BannerAnalitica /> : null}
+        <Paleta abierta={paletaAbierta} ordenes={ordenes} onCerrar={() => setPaletaAbierta(false)} />
         <main id="contenido" aria-busy={ocupado} className="grid gap-4">
           {falloLimites ? (
             <Alert variant="destructive" className="alerta-clara">
@@ -386,6 +581,66 @@ export default function App() {
               />
               {hayCuadre && resultado?.ok && resultado.resumen ? (
                 <>
+                  <section className="superficie herramientas">
+                    <div className="controles">
+                      <button type="button" className="boton-primario" onClick={alDeshacer} disabled={pila.pasado.length === 0}>
+                        Deshacer
+                      </button>
+                      <button type="button" className="boton-primario" onClick={alRehacer} disabled={pila.futuro.length === 0}>
+                        Rehacer
+                      </button>
+                      <button type="button" className="boton-primario" onClick={() => setPaletaAbierta(true)}>
+                        Comandos
+                      </button>
+                    </div>
+                    <div className="controles">
+                      <label className="aviso-suave" htmlFor="tolerancia">
+                        Tolerancia de cantidad
+                      </label>
+                      <input
+                        id="tolerancia"
+                        className="campo campo-corto"
+                        inputMode="decimal"
+                        value={tolerancia}
+                        onChange={(evento) => setTolerancia(evento.target.value)}
+                      />
+                      <input
+                        className="campo"
+                        value={motivoTolerancia}
+                        onChange={(evento) => setMotivoTolerancia(evento.target.value)}
+                        placeholder="Motivo para conservar A"
+                        aria-label="Motivo para aceptar la tolerancia"
+                      />
+                      <button type="button" className="boton-primario" disabled={dentro.length === 0 || !motivoTolerancia.trim()} onClick={aceptarTolerancia}>
+                        Conservar A dentro de la tolerancia ({dentro.length})
+                      </button>
+                    </div>
+                    <p className="aviso-suave">
+                      La tolerancia no cambia la clave: solo marca filas con la misma descripción y una diferencia de
+                      cantidad de hasta N. El motivo es obligatorio.
+                      {valor !== null ? ` Valor estimado de las diferencias: ${valor}.` : ""}
+                    </p>
+                    <div className="controles">
+                      <button type="button" className="boton-primario" onClick={() => setBorradorActivo(true)} disabled={borradorActivo}>
+                        Activar borrador en este navegador
+                      </button>
+                      <button
+                        type="button"
+                        className="boton-primario"
+                        onClick={() => {
+                          borrarBorrador()
+                          setBorradorActivo(false)
+                          setAviso("Borrador borrado de este navegador.")
+                        }}
+                        disabled={!borradorActivo && !leerBorrador()}
+                      >
+                        Borrar borrador
+                      </button>
+                    </div>
+                    {borradorActivo ? (
+                      <p role="status">Borrador local activo. Los CSV no salen de este navegador y el servidor no los guarda.</p>
+                    ) : null}
+                  </section>
                   <TablaCuadre
                     filas={resultado.filas}
                     resumen={resultado.resumen}
@@ -405,6 +660,8 @@ export default function App() {
                     onGuardar={() => void alGuardar()}
                     onAbrir={(archivo) => void alAbrir(archivo)}
                     enlaces={enlaces}
+                    onImprimir={() => window.print()}
+                    onDiferencias={descargarDiferencias}
                   />
                 </>
               ) : null}
@@ -430,6 +687,26 @@ export default function App() {
                   setFicheroA((actual) => (actual ? { ...actual, mapeo: { ...actual.mapeo, [campo]: columna } } : actual))
                   limpiarCuadre()
                 }}
+                coste={costeA}
+                onCoste={setCosteA}
+                plantillas={plantillas}
+                onGuardarPlantilla={(nombre) => {
+                  if (!ficheroA) return
+                  setPlantillas(guardarPlantilla({ nombre, mapeo: ficheroA.mapeo, coste: costeA }))
+                }}
+                onAplicarPlantilla={(nombre) => {
+                  const plantilla = plantillas.find((item) => item.nombre === nombre)
+                  if (!plantilla) return
+                  setCosteA(plantilla.coste)
+                  setFicheroA((actual) => (actual ? { ...actual, mapeo: plantilla.mapeo } : actual))
+                  limpiarCuadre()
+                }}
+                onComaDecimal={() => {
+                  if (!ficheroA?.delimitador) return
+                  const texto = convertirComaDecimal(ficheroA.texto, ficheroA.delimitador, ficheroA.mapeo.cantidad)
+                  const gen = ++generacion.current
+                  void incorporar("A", ficheroA.nombre, texto, ficheroA.delimitador || null, ficheroA.mapeo, gen, ficheroA.codificacion)
+                }}
               />
               <PanelFichero
                 lado="B"
@@ -448,6 +725,26 @@ export default function App() {
                   setFicheroB((actual) => (actual ? { ...actual, mapeo: { ...actual.mapeo, [campo]: columna } } : actual))
                   limpiarCuadre()
                 }}
+                coste={costeB}
+                onCoste={setCosteB}
+                plantillas={plantillas}
+                onGuardarPlantilla={(nombre) => {
+                  if (!ficheroB) return
+                  setPlantillas(guardarPlantilla({ nombre, mapeo: ficheroB.mapeo, coste: costeB }))
+                }}
+                onAplicarPlantilla={(nombre) => {
+                  const plantilla = plantillas.find((item) => item.nombre === nombre)
+                  if (!plantilla) return
+                  setCosteB(plantilla.coste)
+                  setFicheroB((actual) => (actual ? { ...actual, mapeo: plantilla.mapeo } : actual))
+                  limpiarCuadre()
+                }}
+                onComaDecimal={() => {
+                  if (!ficheroB?.delimitador) return
+                  const texto = convertirComaDecimal(ficheroB.texto, ficheroB.delimitador, ficheroB.mapeo.cantidad)
+                  const gen = ++generacion.current
+                  void incorporar("B", ficheroB.nombre, texto, ficheroB.delimitador || null, ficheroB.mapeo, gen, ficheroB.codificacion)
+                }}
               />
               <AccionReconciliar
                 listo={listoParaCuadrar}
@@ -459,10 +756,19 @@ export default function App() {
           </div>
         </main>
         <footer className="pie">
-          Cuadra no guarda los ficheros. Si cierras la pestaña sin descargar la sesión, el cuadre se pierde. Los números
-          usan punto decimal; las descripciones se recortan solo en los extremos y se comparan tal cual.
+          <p>
+            Cuadra no guarda los ficheros en el servidor. Si cierras la pestaña sin descargar la sesión ni activar el
+            borrador, el cuadre se pierde. La clave se compara tal cual. La coma decimal solo se convierte si lo pides.
+          </p>
+          <nav className="pie-nav" aria-label="Información legal">
+            <a href="/privacidad">Privacidad</a>
+            <a href="/aviso-legal">Aviso legal</a>
+            <a href="/cookies">Cookies</a>
+            <a href="/en/privacidad">English</a>
+          </nav>
         </footer>
       </div>
+      <Informe resumen={resultado?.resumen ?? null} filas={filasVisibles} valor={valor} />
     </>
   )
 }

@@ -30,14 +30,18 @@ def error(
     fichero: str | None = None,
     fila: int | None = None,
     columna: str | None = None,
+    identificador: str | None = None,
 ) -> dict:
-    return {
+    datos = {
         "codigo": codigo,
         "mensaje": mensaje,
         "fichero": fichero,
         "fila": fila,
         "columna": columna,
     }
+    if identificador is not None:
+        datos["identificador"] = identificador
+    return datos
 
 
 def normalizar_texto(texto: str) -> str:

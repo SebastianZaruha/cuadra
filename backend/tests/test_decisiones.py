@@ -45,6 +45,7 @@ def test_elegir_b_en_solo_en_a_queda_a_la_vista_y_no_se_aplica():
             "fichero": None,
             "fila": None,
             "columna": None,
+            "identificador": "A-3",
         }
     ]
 

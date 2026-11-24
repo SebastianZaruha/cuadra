@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm ci --prefix frontend && npm run build --prefix frontend",
   "outputDirectory": "frontend/dist",
+  "redirects": [
+    { "source": "/privacy", "destination": "/en/privacidad", "permanent": false },
+    { "source": "/legal-notice", "destination": "/en/aviso-legal", "permanent": false },
+    { "source": "/cookies-en", "destination": "/en/cookies", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py" }
   ]

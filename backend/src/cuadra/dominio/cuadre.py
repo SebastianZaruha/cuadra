@@ -292,20 +292,27 @@ def aplicar_decisiones(filas: list[Fila], decisiones: list[dict]) -> tuple[list[
                 error(
                     "decision_desconocida",
                     mensajes.decision_desconocida(str(mostrado)),
+                    identificador=str(mostrado) or None,
                 )
             )
             continue
         if conteo[ident] > 1:
             if ident not in duplicadas:
                 duplicadas.add(ident)
-                errores.append(error("decision_duplicada", mensajes.decision_duplicada(ident)))
+                errores.append(
+                    error("decision_duplicada", mensajes.decision_duplicada(ident), identificador=ident)
+                )
             continue
         if ident in bloqueadas:
-            errores.append(error("decision_en_bloqueada", mensajes.decision_en_bloqueada(ident)))
+            errores.append(
+                error("decision_en_bloqueada", mensajes.decision_en_bloqueada(ident), identificador=ident)
+            )
             continue
         fila = por_id.get(ident)
         if fila is None:
-            errores.append(error("decision_desconocida", mensajes.decision_desconocida(ident)))
+            errores.append(
+                error("decision_desconocida", mensajes.decision_desconocida(ident), identificador=ident)
+            )
             continue
         decision, problema = _decision_de(cruda, fila)
         if problema:
@@ -327,17 +334,22 @@ def _decision_de(cruda: dict, fila: Fila) -> tuple[Decision | None, dict | None]
     ident = fila.identificador
     motivo = cruda.get("motivo", "")
     if not isinstance(motivo, str) or motivo.strip() == "":
-        return None, error("motivo_vacio", mensajes.decision_motivo_vacio(ident))
+        return None, error("motivo_vacio", mensajes.decision_motivo_vacio(ident), identificador=ident)
     motivo = motivo.strip()
     if len(motivo) > MAX_MOTIVO:
-        return None, error("motivo_largo", mensajes.motivo_largo(ident))
+        return None, error("motivo_largo", mensajes.motivo_largo(ident), identificador=ident)
     tipo = cruda.get("tipo")
     if tipo not in _TIPOS:
-        return None, error("decision_tipo_desconocido", mensajes.decision_tipo_desconocido(ident))
+        return None, error(
+            "decision_tipo_desconocido",
+            mensajes.decision_tipo_desconocido(ident),
+            identificador=ident,
+        )
     if tipo == "cantidad_manual" and isinstance(fila, ModificadoDescripcion):
         return None, error(
             "decision_ilegal",
             mensajes.decision_manual_descripcion(ident),
+            identificador=ident,
         )
     if tipo == "elegir_A":
         decision: Decision = ElegirA(motivo)
@@ -348,15 +360,27 @@ def _decision_de(cruda: dict, fila: Fila) -> tuple[Decision | None, dict | None]
     else:
         cant = cruda.get("cantidad", "")
         if not isinstance(cant, str):
-            return None, error("cantidad_manual_invalida", mensajes.decision_cantidad_invalida(ident))
+            return None, error(
+                "cantidad_manual_invalida",
+                mensajes.decision_cantidad_invalida(ident),
+                identificador=ident,
+            )
         canonica = cantidad_canonica(cant)
         if canonica is None:
-            return None, error("cantidad_manual_invalida", mensajes.decision_cantidad_invalida(ident))
+            return None, error(
+                "cantidad_manual_invalida",
+                mensajes.decision_cantidad_invalida(ident),
+                identificador=ident,
+            )
         decision = CantidadManual(canonica, motivo)
     try:
         replace(fila, decision=decision)
     except ValueError:
-        return None, error("decision_ilegal", mensajes.decision_ilegal(str(tipo), fila.tipo, ident))
+        return None, error(
+            "decision_ilegal",
+            mensajes.decision_ilegal(str(tipo), fila.tipo, ident),
+            identificador=ident,
+        )
     return decision, None
 
 

@@ -105,7 +105,7 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 - La muestra de Ferretería La Cuadra se carga y se cuadra al abrir. Lleva la etiqueta «Datos de muestra» y el relato del API («Inventarios ficticios»). Si el API falla, se dice; no hay números inventados en el cliente.
 - Resumen con barras de iguales, modificados, solo en A, solo en B y bloqueados. Los datos son `resumen`. La barra crece al entrar (~560 ms, escalonada). Con `prefers-reduced-motion: reduce` no hay animación.
 - Vidrio liso (`data-vl="desenfoque"`) en la barra, los dos ficheros, la acción de reconciliar, el resumen y el cierre. La tabla no es vidrio: es una superficie oscura, densa, con su propio texto.
-- Fondo fijo con cuatro manchas (pino `#1f6b4a`, cobre `#8a4a28`, ámbar `#5c5030`, azul `#2a4a62`) sobre `#101614`, con un movimiento lento. El blanco sobre el pino de marca queda en torno a 6,4:1; el cobre de marca `#b8612e` queda en 4,4:1 y no se usa como mancha. No se cambió el humo, el blur, el canto ni la sombra del módulo.
+- Fondo `#0b0b0c` con una sola luz cálida muy baja, fuera de cuadro, y grano fino. Sin manchas de color ni animación. El acento de las acciones es el pino `#1f6b4a`. El vidrio sigue en desenfoque; el canto y la sombra larga se afinan en la pantalla, no en el módulo.
 - En escritorio la barra es pegajosa y el contenido pasa por debajo; la columna de ficheros también se queda. En móvil (por debajo de 1100 px) la barra no se pega, para no tapar la fila que se está leyendo. El resumen va antes que los ficheros.
 - Entrada de las piezas: opacidad y 8 px, 200 ms, escalonada. Se apaga con movimiento reducido.
 - «Quitar fichero A/B». Al quitar, el cuadre y las descargas se tiran.
@@ -115,6 +115,14 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 - Espera anunciada como «Trabajando…», no como «Leyendo ficheros…».
 - Foco crema en la superficie y blanco dentro del vidrio. Controles de al menos 44 px. Filtros en una fila con desplazamiento horizontal en pantallas estrechas.
 - El texto «Elegido por ti» pasó a «Elegido»: el delimitador puede venir de la muestra, no de la persona.
+- Deshacer y rehacer decisiones, paleta de comandos, informe imprimible y exportación de diferencias en el navegador.
+- Borrador y plantillas de columnas solo si se activan, en `localStorage`.
+- Excel a CSV y Latin-1 en el cliente, con aviso. La coma decimal solo si se pulsa el botón.
+- Tolerancia de cantidad explícita, con motivo, sin tocar la clave. El coste, si se mapea, solo estima un valor.
+- Errores de decisión con `identificador` propio.
+- Páginas `/privacidad`, `/aviso-legal` y `/cookies` (y `/en/…`) con el placeholder «Texto legal pendiente de revisión». Sin analítica: el banner está en el código y no se muestra.
+
+Quedan fuera, con motivo: cuadre de 50 000 filas (el tope real es 2 000 filas y 1 MiB, y cada decisión reenvía los dos CSV bajo el límite de 4,5 MB de Vercel); cuadre offline (las reglas están solo en Python); tolerancia de precio dentro del dominio (no hay columna de precio en el contrato).
 
 ## Qué se rechazó, y por qué
 
@@ -123,7 +131,7 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 | Emparejar por parecido o con un modelo | Contradice la razón del programa |
 | Excel, PDF, OCR | Otra promesa y otro lector |
 | Cuentas, colaboración, guardar en el servidor | Rompe la API sin estado y pide despliegue |
-| Borrador automático en el navegador | Haría falso «no guarda los ficheros» |
+| Borrador automático | Haría falso «no guarda los ficheros». El que hay es opt-in y se puede borrar |
 | Decisiones en lote | El motivo es por fila; el lote invita a resolver sin mirar |
 | Tema claro o interruptor | El blanco del vidrio no se lee sobre papel; la receta no se negocia |
 | Filtro SVG de canto | Pedido explícito el desenfoque liso, igual en los tres motores |
@@ -135,16 +143,12 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 
 Ordenado por lo que más cambiaría el uso real, no por lo más vistoso.
 
-1. **Error de decisión con identificador propio.** Dejar de buscar `«clave»` dentro del mensaje. Cambio pequeño de contrato, con test de API.
-2. **Sugerir columnas sin exigir mayúsculas ni acentos.** Solo en la pantalla. La comparación del cuadre sigue siendo exacta.
-3. **Tests del frontend para `opciones.ts`.** Filtros, sugerencia y `diferenciaCantidad`. Hace falta un runner; no cambia la pantalla.
-4. **Deshacer una decisión** (volver a pendiente) con la misma API: reenviar el cuadre sin esa decisión. Las iguales siguen entrando solas.
-5. **Decidir varias filas con un motivo escrito y una confirmación**, nunca en silencio. Después de poder deshacer.
-6. **Vista previa del CSV** antes de descargar, con la marca `COMPLETA` o `PARCIAL` visible.
-7. **Borrador local opt-in**, con una frase que diga que el navegador guarda los CSV, y un botón de borrar. No es el comportamiento por defecto.
-8. **Excel solo como conversión a CSV en el cliente**, sin tocar el dominio, cuando el punto 3 ya cubra los bordes.
-9. **Podar** Geist y los componentes de UI que nadie monta.
-10. **Fuente autoalojada** (Fraunces e IBM Plex son OFL) para que la página no dependa de Google Fonts.
+1. **Sugerir columnas sin exigir mayúsculas ni acentos.** Solo en la pantalla. La comparación del cuadre sigue siendo exacta.
+2. **Más de 2 000 filas.** Hoy el tope es 2 000 filas y 1 MiB por fichero. Cada decisión reenvía los dos CSV y Vercel limita el cuerpo a 4,5 MB. Subir a 50 000 filas pide otro transporte, no un botón.
+3. **Cuadre sin API.** Las reglas están solo en Python. El service worker cachea el cascarón; sin red no hay un cuadre nuevo.
+4. **Tolerancia de precio en el dominio.** El coste de la pantalla es una estimación. Meter el precio en el emparejamiento cambiaría el contrato.
+5. **Textos legales definitivos.** Las rutas existen. El asesor aún no ha entregado el texto.
+6. **Podar** Geist y componentes de UI que nadie monta.
 
 ## Vidrio
 

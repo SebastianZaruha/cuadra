@@ -1,9 +1,10 @@
-import { useId } from "react"
+import { useId, useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 import { usePanelVidrio } from "../comun/estilo/usePanelVidrio.ts"
+import { sospechaComaDecimal } from "../csvLocal.ts"
 import type { Delimitador, FicheroUi, Mapeo } from "../tipos.ts"
 
 type Props = {
@@ -16,6 +17,12 @@ type Props = {
   onQuitar: () => void
   onDelimitador: (delimitador: Delimitador) => void
   onMapeo: (campo: keyof Mapeo, columna: string) => void
+  coste: string
+  onCoste: (columna: string) => void
+  plantillas: { nombre: string }[]
+  onGuardarPlantilla: (nombre: string) => void
+  onAplicarPlantilla: (nombre: string) => void
+  onComaDecimal: () => void
 }
 
 const CAMPOS: { campo: keyof Mapeo; etiqueta: string }[] = [
@@ -34,9 +41,16 @@ export function PanelFichero({
   onQuitar,
   onDelimitador,
   onMapeo,
+  coste,
+  onCoste,
+  plantillas,
+  onGuardarPlantilla,
+  onAplicarPlantilla,
+  onComaDecimal,
 }: Props) {
   const ref = usePanelVidrio<HTMLElement>()
   const base = useId()
+  const [nombrePlantilla, setNombrePlantilla] = useState("")
   const titulo = lado === "A" ? "Fichero A" : "Fichero B"
   const retraso = lado === "A" ? "entrada entrada-2" : "entrada entrada-3"
   return (
@@ -49,14 +63,14 @@ export function PanelFichero({
       </p>
       <div className="fila-archivo">
         <div className="archivo">
-          <label htmlFor={`${base}-archivo`} className="control">
+          <label htmlFor={lado === "A" ? "cuadra-archivo-a" : "cuadra-archivo-b"} className="control">
             Elegir CSV
           </label>
           <Input
-            id={`${base}-archivo`}
+            id={lado === "A" ? "cuadra-archivo-a" : "cuadra-archivo-b"}
             className="sr-only"
             type="file"
-            accept=".csv,text/csv,text/plain"
+            accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain"
             disabled={ocupado}
             onChange={(evento) => {
               const archivo = evento.target.files?.[0]
@@ -144,6 +158,61 @@ export function PanelFichero({
                   </select>
                 </div>
               ))}
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${base}-coste`}>Coste (opcional, no se empareja)</Label>
+                <select id={`${base}-coste`} className="campo" value={coste} onChange={(evento) => onCoste(evento.target.value)}>
+                  <option value="">Sin columna de coste</option>
+                  {fichero.columnas.map((columna) => (
+                    <option key={columna} value={columna}>
+                      {columna}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {fichero.codificacion === "windows-1252" ? (
+                <p className="aviso-suave">No era UTF-8. Se leyó como Windows-1252 en este navegador.</p>
+              ) : null}
+              {fichero.codificacion === "excel" ? (
+                <p className="aviso-suave">El Excel se convirtió a CSV en este navegador. El servidor no lo guarda.</p>
+              ) : null}
+              {fichero.delimitador && sospechaComaDecimal(fichero.texto, fichero.delimitador, fichero.mapeo.cantidad) ? (
+                <button type="button" className="control" onClick={onComaDecimal}>
+                  Convertir comas decimales de la cantidad
+                </button>
+              ) : null}
+              <div className="controles">
+                <input
+                  className="campo"
+                  value={nombrePlantilla}
+                  onChange={(evento) => setNombrePlantilla(evento.target.value)}
+                  placeholder="Nombre de plantilla"
+                  aria-label={`Nombre de plantilla del fichero ${lado}`}
+                />
+                <button
+                  type="button"
+                  className="control"
+                  disabled={!nombrePlantilla.trim()}
+                  onClick={() => {
+                    onGuardarPlantilla(nombrePlantilla.trim())
+                    setNombrePlantilla("")
+                  }}
+                >
+                  Guardar plantilla aquí
+                </button>
+                {plantillas.length > 0 ? (
+                  <select className="campo" aria-label={`Aplicar plantilla al fichero ${lado}`} defaultValue="" onChange={(evento) => {
+                    if (evento.target.value) onAplicarPlantilla(evento.target.value)
+                    evento.target.value = ""
+                  }}>
+                    <option value="">Aplicar plantilla</option>
+                    {plantillas.map((plantilla) => (
+                      <option key={plantilla.nombre} value={plantilla.nombre}>
+                        {plantilla.nombre}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
               {fichero.muestra.length > 0 ? (
                 <div className="overflow-x-auto text-sm">
                   <p className="mb-1">Primeras filas, sin interpretar todavía.</p>
@@ -191,7 +260,7 @@ export function AccionReconciliar({
   const ref = usePanelVidrio<HTMLDivElement>()
   return (
     <div ref={ref} className="vidrio-liquido panel-vidrio entrada entrada-4 accion-cuadrar">
-      <button type="button" className="control principal" disabled={!listo || ocupado} onClick={onClick}>
+      <button type="button" className="boton-primario" disabled={!listo || ocupado} onClick={onClick}>
         Reconciliar
       </button>
       {!ocupado && hayFicheros && !listo ? (
