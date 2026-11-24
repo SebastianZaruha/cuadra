@@ -38,14 +38,13 @@ export const COOKIE_GA_RESIDUAL = "_ga_KR0J1VBPLH"
 export const DOMINIO_COOKIE_PRODUCCION = "cuadra.sebastianzaruha.com"
 
 /**
- * En el dominio público la cookie es solo de ese host.
- * En local y en las previews, `none` evita subirla al dominio padre.
+ * `gtag` con `cookie_domain: "auto"` (el valor por defecto) prueba primero el
+ * dominio registrable, `sebastianzaruha.com`, y ahí deja `_ga`. Un dominio
+ * explícito se guarda con atributo Domain y el navegador lo muestra con punto
+ * delante. `none` es una cookie solo del host, sin atributo Domain.
+ * El host no entra en la decisión: si la comprobación fallara, `auto` volvería.
  */
-export function dominioCookie(hostname: string): "none" | typeof DOMINIO_COOKIE_PRODUCCION {
-  const host = hostname.trim().toLowerCase().replace(/\.$/, "")
-  if (host === DOMINIO_COOKIE_PRODUCCION || host.endsWith(`.${DOMINIO_COOKIE_PRODUCCION}`)) {
-    return DOMINIO_COOKIE_PRODUCCION
-  }
+export function dominioCookie(_hostname?: string): "none" {
   return "none"
 }
 
@@ -214,11 +213,18 @@ function asegurarGtag(): void {
   }
 }
 
-/** Config y page_view. Lo usan Aceptar y Guardar del panel, aunque el script ya estuviera cargado. */
+let ultimaVista = 0
+
+/** Config con un solo page_view. Lo usan Aceptar y Guardar. El dominio de la cookie se fija antes de `js`, para que el arranque automático no use `auto`. */
 export function enviarMedicion(id: string): void {
   asegurarGtag()
   const pagina = `${location.origin}${location.pathname}`
+  const dominio = dominioCookie(location.hostname)
+  const ahora = Date.now()
+  const vista = ahora - ultimaVista > 1500
+  window.gtag?.("set", { cookie_domain: dominio })
   window.gtag?.("js", new Date())
+  window.gtag?.("set", { cookie_domain: dominio })
   window.gtag?.("set", "allow_google_signals", false)
   window.gtag?.("set", "allow_ad_personalization_signals", false)
   window.gtag?.("consent", "default", {
@@ -227,8 +233,8 @@ export function enviarMedicion(id: string): void {
     ad_user_data: "denied",
     ad_personalization: "denied",
   })
-  window.gtag?.("config", id, opcionesMedicion(location.hostname, pagina))
-  window.gtag?.("event", "page_view", { send_to: id, page_location: pagina })
+  window.gtag?.("config", id, { ...opcionesMedicion(location.hostname, pagina), send_page_view: vista })
+  if (vista) ultimaVista = ahora
 }
 
 export function enableGoogleAnalytics(id: string | null): void {
