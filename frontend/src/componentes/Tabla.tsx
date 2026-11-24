@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-import { ETIQUETA_FILTRO, ayudaFila, etiquetaCategoria, opcionesDecision, pasaFiltro } from "../opciones.ts"
+import { ETIQUETA_FILTRO, ayudaFila, diferenciaCantidad, etiquetaCategoria, opcionesDecision, pasaFiltro } from "../opciones.ts"
 import type { DecisionEnviada, ErrorValidacion, Fila, Filtro, Resumen } from "../tipos.ts"
 
 type Props = {
@@ -34,16 +34,14 @@ export function TablaCuadre({
   const buscarId = useId()
   const visibles = filas.filter((fila) => pasaFiltro(fila, filtro, busqueda))
   return (
-    <section id="cuadre" className="grid gap-4" aria-labelledby="titulo-cuadre">
+    <section className="superficie entrada entrada-4 grid gap-4 p-4 sm:p-5" aria-labelledby="titulo-diferencias">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id="titulo-cuadre" className="font-serif text-2xl">
-          Diferencias
-        </h2>
-        <p aria-live="polite" className="text-sm">
+        <h2 id="titulo-diferencias">Diferencias</h2>
+        <p aria-live="polite">
           Pendientes: {resumen.pendientes}. Resueltos: {resumen.resueltos}. Bloqueados: {resumen.bloqueados}.
         </p>
       </div>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar filas">
+      <div className="filtros" role="group" aria-label="Filtrar filas">
         {ETIQUETA_FILTRO.map((item) => (
           <Button
             key={item.id}
@@ -66,16 +64,15 @@ export function TablaCuadre({
           placeholder="Identificador o descripción"
         />
       </div>
+      <p className="conteo">
+        {visibles.length} de {filas.length} filas
+      </p>
       {visibles.length === 0 ? (
-        <p className="rounded-xl bg-card px-4 py-6 text-sm ring-1 ring-foreground/10">
-          Ninguna fila coincide con este filtro.
-        </p>
+        <p className="vacio">Ninguna fila coincide con este filtro.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl bg-card ring-1 ring-foreground/10">
+        <div className="overflow-x-auto">
           <table className="tabla-cuadre">
-            <caption className="sr-only">
-              Valores de A frente a B, con la decisión de cada clave
-            </caption>
+            <caption className="sr-only">Valores de A frente a B, con la decisión de cada clave</caption>
             <thead>
               <tr>
                 <th scope="col">Clave</th>
@@ -107,6 +104,11 @@ function claveFila(fila: Fila): string {
   return fila.identificador
 }
 
+function etiquetaEstado(fila: Exclude<Fila, { tipo: "bloqueados" }>): string {
+  if (fila.tipo === "iguales" && fila.decision === null) return "Entra sola"
+  return fila.estado === "pendiente" ? "Pendiente" : "Resuelta"
+}
+
 function FilaTabla({
   fila,
   errores,
@@ -124,10 +126,10 @@ function FilaTabla({
       <td data-label="Clave">
         <div className="font-medium">{identificador}</div>
         <div className="mt-1 flex flex-wrap gap-1">
-          <Badge variant="secondary">{etiquetaCategoria(fila)}</Badge>
+          <Badge className="marca">{etiquetaCategoria(fila)}</Badge>
           {fila.tipo !== "bloqueados" ? (
-            <Badge variant={fila.estado === "pendiente" ? "outline" : "default"}>
-              {fila.estado === "pendiente" ? "Pendiente" : "Resuelta"}
+            <Badge className={fila.estado === "pendiente" ? "marca marca-pendiente" : "marca marca-resuelta"}>
+              {etiquetaEstado(fila)}
             </Badge>
           ) : null}
         </div>
@@ -142,7 +144,7 @@ function FilaTabla({
         {fila.tipo === "bloqueados" ? (
           <div className="grid gap-2 text-sm">
             <p>{ayudaFila(fila)}</p>
-            <ul className="grid gap-1 text-destructive">
+            <ul className="grid gap-1 error">
               {fila.errores.map((error) => (
                 <li key={error.codigo + error.mensaje}>{error.mensaje}</li>
               ))}
@@ -164,22 +166,22 @@ function FilaTabla({
 
 function Celda({ lado, fila }: { lado: "A" | "B"; fila: Fila }) {
   if (fila.tipo === "bloqueados") {
-    if (fila.fichero !== lado) return <p className="text-sm text-muted-foreground">No está en {lado}.</p>
+    if (fila.fichero !== lado) return <p className="text-sm">No está en {lado}.</p>
     return (
       <Valores
         titulo={`${lado} · fila ${fila.fila}`}
         descripcion={fila.descripcion_cruda}
         cantidad={fila.cantidad_cruda || "(vacía)"}
         difiereDescripcion={false}
-        difiereCantidad={false}
+        notaCantidad={null}
       />
     )
   }
   if (fila.tipo === "solo_en_A" && lado === "B") {
-    return <p className="text-sm text-muted-foreground">No está en B.</p>
+    return <p className="text-sm">No está en B.</p>
   }
   if (fila.tipo === "solo_en_B" && lado === "A") {
-    return <p className="text-sm text-muted-foreground">No está en A.</p>
+    return <p className="text-sm">No está en A.</p>
   }
   if (fila.tipo === "iguales" || fila.tipo === "solo_en_A" || fila.tipo === "solo_en_B") {
     const numero = fila.tipo === "solo_en_B" ? fila.fila_b : fila.tipo === "solo_en_A" ? fila.fila_a : lado === "A" ? fila.fila_a : fila.fila_b
@@ -189,19 +191,18 @@ function Celda({ lado, fila }: { lado: "A" | "B"; fila: Fila }) {
         descripcion={fila.descripcion}
         cantidad={fila.cantidad}
         difiereDescripcion={false}
-        difiereCantidad={false}
+        notaCantidad={null}
       />
     )
   }
-  const difiereDescripcion = fila.descripcion_difiere
-  const difiereCantidad = fila.cantidad_difiere
+  const delta = lado === "B" && fila.cantidad_difiere ? diferenciaCantidad(fila.cantidad_a, fila.cantidad_b) : null
   return (
     <Valores
       titulo={`${lado} · fila ${lado === "A" ? fila.fila_a : fila.fila_b}`}
       descripcion={lado === "A" ? fila.descripcion_a : fila.descripcion_b}
       cantidad={lado === "A" ? fila.cantidad_a : fila.cantidad_b}
-      difiereDescripcion={difiereDescripcion}
-      difiereCantidad={difiereCantidad}
+      difiereDescripcion={fila.descripcion_difiere}
+      notaCantidad={delta ? `B − A: ${delta}` : fila.cantidad_difiere ? "La cantidad difiere" : null}
     />
   )
 }
@@ -211,21 +212,21 @@ function Valores({
   descripcion,
   cantidad,
   difiereDescripcion,
-  difiereCantidad,
+  notaCantidad,
 }: {
   titulo: string
   descripcion: string
   cantidad: string
   difiereDescripcion: boolean
-  difiereCantidad: boolean
+  notaCantidad: string | null
 }) {
   return (
     <div className="text-sm">
-      <p className="text-muted-foreground">{titulo}</p>
+      <p className="suave">{titulo}</p>
       <p>{descripcion || "(descripción vacía)"}</p>
-      {difiereDescripcion ? <p className="text-xs font-medium text-[#b8612e]">La descripción difiere</p> : null}
+      {difiereDescripcion ? <p className="difiere">La descripción difiere</p> : null}
       <p>Cantidad: {cantidad}</p>
-      {difiereCantidad ? <p className="text-xs font-medium text-[#b8612e]">La cantidad difiere</p> : null}
+      {notaCantidad ? <p className="difiere">{notaCantidad}</p> : null}
     </div>
   )
 }
@@ -245,9 +246,7 @@ function Formulario({
   const opciones = opcionesDecision(fila)
   const [tipo, setTipo] = useState(fila.decision?.tipo ?? "")
   const [motivo, setMotivo] = useState(fila.decision?.motivo ?? "")
-  const [cantidad, setCantidad] = useState(
-    fila.decision?.tipo === "cantidad_manual" ? fila.decision.cantidad : "",
-  )
+  const [cantidad, setCantidad] = useState(fila.decision?.tipo === "cantidad_manual" ? fila.decision.cantidad : "")
   const [local, setLocal] = useState("")
 
   function guardar() {
@@ -281,15 +280,13 @@ function Formulario({
         guardar()
       }}
     >
-      <p className="text-sm text-muted-foreground">{ayudaFila(fila)}</p>
+      <details className="ayuda">
+        <summary>Cómo decidir</summary>
+        <p className="text-sm">{ayudaFila(fila)}</p>
+      </details>
       <div className="grid gap-1.5">
         <Label htmlFor={`${base}-decision`}>Decisión</Label>
-        <select
-          id={`${base}-decision`}
-          className="campo"
-          value={tipo}
-          onChange={(evento) => setTipo(evento.target.value)}
-        >
+        <select id={`${base}-decision`} className="campo" value={tipo} onChange={(evento) => setTipo(evento.target.value)}>
           <option value="">Elige qué hacer</option>
           {opciones.map((opcion) => (
             <option key={opcion.valor} value={opcion.valor} disabled={!opcion.activa}>
@@ -310,23 +307,18 @@ function Formulario({
             placeholder="Por ejemplo 4.5"
             aria-describedby={`${base}-regla`}
           />
-          <p id={`${base}-regla`} className="text-xs text-muted-foreground">
+          <p id={`${base}-regla`} className="suave text-xs">
             Punto decimal, sin miles, hasta 4 decimales. El menos solo vale como signo.
           </p>
         </div>
       ) : null}
       <div className="grid gap-1.5">
         <Label htmlFor={`${base}-motivo`}>Motivo</Label>
-        <Input
-          id={`${base}-motivo`}
-          value={motivo}
-          onChange={(evento) => setMotivo(evento.target.value)}
-          required
-        />
+        <Input id={`${base}-motivo`} value={motivo} onChange={(evento) => setMotivo(evento.target.value)} required />
       </div>
-      {local ? <p className="text-sm text-destructive">{local}</p> : null}
+      {local ? <p className="error text-sm">{local}</p> : null}
       {errores.map((error) => (
-        <p key={error.mensaje} className="text-sm text-destructive">
+        <p key={error.mensaje} className="error text-sm">
           {error.mensaje}
         </p>
       ))}

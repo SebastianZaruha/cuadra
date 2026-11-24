@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+import { usePanelVidrio } from "../comun/estilo/usePanelVidrio.ts"
 import type { Resumen } from "../tipos.ts"
 
 type Props = {
@@ -14,80 +14,80 @@ type Props = {
   enlaces: { nombre: string; url: string }[]
 }
 
-export function Cierre({
-  resumen,
-  completaPermitida,
-  ocupado,
-  onExportar,
-  onGuardar,
-  onAbrir,
-  enlaces,
-}: Props) {
+export function Cierre({ resumen, completaPermitida, ocupado, onExportar, onGuardar, onAbrir, enlaces }: Props) {
+  const ref = usePanelVidrio<HTMLElement>()
   const aviso = completaPermitida
     ? "No quedan pendientes ni bloqueados. El inventario y el historial salen marcados como completos."
     : `Exportación completa bloqueada: ${resumen.pendientes} pendientes y ${resumen.bloqueados} bloqueados.`
   return (
-    <section className="grid gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10" aria-labelledby="titulo-cierre">
-      <h2 id="titulo-cierre" className="font-serif text-2xl">
+    <section
+      ref={ref}
+      className="vidrio-liquido panel-vidrio entrada entrada-5"
+      aria-labelledby="titulo-cierre"
+    >
+      <h2 id="titulo-cierre" className="vl-humo titulo-fichero">
         Cerrar el cuadre
       </h2>
-      <p id="aviso-exportacion" className="text-sm">
-        {aviso}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <Button
+      <div className="vl-apartados">
+        <p id="aviso-exportacion" className="vl-apartado">
+          {aviso}
+        </p>
+        <p className="vl-apartado">
+          La parcial incluye solo lo ya resuelto y se marca como parcial en el nombre y en el contenido. Las filas
+          pendientes y bloqueadas siguen en el historial: no desaparecen.
+        </p>
+      </div>
+      <div className="controles mt-4">
+        <button
           type="button"
+          className="control principal"
           disabled={!completaPermitida || ocupado}
           aria-describedby="aviso-exportacion"
           onClick={() => onExportar("completa")}
         >
           Exportar inventario completo
-        </Button>
-        <Button type="button" variant="outline" disabled={ocupado} onClick={() => onExportar("parcial")}>
+        </button>
+        <button type="button" className="control" disabled={ocupado} onClick={() => onExportar("parcial")}>
           Exportar parcial
-        </Button>
-        <Button type="button" variant="secondary" disabled={ocupado} onClick={onGuardar}>
+        </button>
+        <button type="button" className="control" disabled={ocupado} onClick={onGuardar}>
           Guardar sesión
-        </Button>
+        </button>
       </div>
       {enlaces.length > 0 ? (
-        <ul className="grid gap-1 text-sm">
+        <ul className="mt-3 grid gap-1">
           {enlaces.map((enlace) => (
             <li key={enlace.nombre}>
-              <a className="font-medium underline" href={enlace.url} download={enlace.nombre}>
+              <a className="enlace-descarga" href={enlace.url} download={enlace.nombre}>
                 Descargar {enlace.nombre}
               </a>
             </li>
           ))}
         </ul>
       ) : null}
-      <p className="text-sm text-muted-foreground">
-        La parcial incluye solo lo ya resuelto y se marca como parcial en el nombre y en el contenido. Las filas
-        pendientes y bloqueadas siguen en el historial: no desaparecen.
-      </p>
-      <div className="grid gap-1.5">
-        <div>
-          <Label
-            htmlFor="abrir-sesion"
-            className="w-fit cursor-pointer rounded-lg border border-input bg-background px-3 py-2"
-          >
-            Abrir una sesión guardada
-          </Label>
-          <Input
-            id="abrir-sesion"
-            className="sr-only"
-            type="file"
-            accept="application/json,.json"
-            onChange={(evento) => {
-              const archivo = evento.target.files?.[0]
-              if (archivo) onAbrir(archivo)
-              evento.target.value = ""
-            }}
-          />
+      <div className="vl-apartados mt-4">
+        <div className="vl-apartado">
+          <div className="archivo">
+            <Label htmlFor="abrir-sesion" className="control">
+              Abrir una sesión guardada
+            </Label>
+            <Input
+              id="abrir-sesion"
+              className="sr-only"
+              type="file"
+              accept="application/json,.json"
+              disabled={ocupado}
+              onChange={(evento) => {
+                const archivo = evento.target.files?.[0]
+                if (archivo) onAbrir(archivo)
+                evento.target.value = ""
+              }}
+            />
+          </div>
+          <p className="aviso-suave">
+            Hacen falta los mismos CSV ya cargados. Si el contenido o la versión no cuadran, la sesión se rechaza.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Hacen falta los mismos CSV ya cargados. Si el contenido o la versión no cuadran, la sesión se rechaza.
-        </p>
       </div>
     </section>
   )

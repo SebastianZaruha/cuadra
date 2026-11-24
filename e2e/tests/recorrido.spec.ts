@@ -22,11 +22,16 @@ async function decidir(page: Page, identificador: string, etiqueta: string, moti
 test("recorre la demostración, exporta y reabre la sesión", async ({ page }) => {
   await page.goto("/")
   await expect(page.getByRole("heading", { name: "Cuadra" })).toBeVisible()
-  await expect(page.getByText("Todavía no hay ficheros")).toBeVisible()
-
-  await page.getByRole("button", { name: "Cargar demostración" }).click()
+  await expect(page.getByText("Datos de muestra")).toBeVisible()
+  await expect(page.getByText("Inventarios ficticios")).toBeVisible()
   await expect(page.getByRole("button", { name: "Reconciliar" })).toBeEnabled()
-  await page.getByRole("button", { name: "Reconciliar" }).click()
+  await expect(page.getByText("Pendientes: 5.")).toBeVisible()
+
+  const recarga = page.waitForResponse(
+    (respuesta) => respuesta.url().includes("/api/reconciliar") && respuesta.request().method() === "POST",
+  )
+  await page.getByRole("button", { name: "Cargar demostración" }).click()
+  await recarga
   await expect(page.getByText("Pendientes: 5.")).toBeVisible()
   await expect(filaDe(page, "LC-110")).toBeVisible()
   await expect(filaDe(page, "LC-170")).toBeVisible()
@@ -71,9 +76,7 @@ test("recorre la demostración, exporta y reabre la sesión", async ({ page }) =
   const rutaSesion = (await sesion.path())!
 
   await page.reload()
-  await page.getByRole("button", { name: "Cargar demostración" }).click()
-  await expect(page.getByRole("button", { name: "Reconciliar" })).toBeEnabled()
-  await page.getByRole("button", { name: "Reconciliar" }).click()
+  await expect(page.getByText("Datos de muestra")).toBeVisible()
   await expect(page.getByText("Pendientes: 5.")).toBeVisible()
   await page.getByLabel("Abrir una sesión guardada").setInputFiles(rutaSesion)
   await expect(page.getByText("Pendientes: 0.")).toBeVisible()

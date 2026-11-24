@@ -126,6 +126,8 @@ El mismo CSV y las mismas decisiones producen el mismo cuadre y los mismos bytes
 
 El cliente los consulta en `GET /api/limites` y también corta el archivo antes de enviarlo. El servidor los vuelve a aplicar. Cabecera en la interfaz y en esta página.
 
+La auditoría de este corte —qué se vio, qué entró, qué se rechazó y el orden de lo que queda— está en [docs/auditoria.md](docs/auditoria.md).
+
 ## Qué no hace
 
 No abre Excel, PDF ni imágenes. No hace OCR, no llama a un modelo, no empareja por similitud, no se conecta a otro sistema, no tiene cuentas ni colaboración, y no guarda nada entre peticiones.
