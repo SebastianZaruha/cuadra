@@ -2,7 +2,8 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import { interpretarBorrador } from "../src/borrador.ts"
-import { eleccionVigente } from "../src/consentimiento.ts"
+import { COOKIE_GA_RESIDUAL, dominioCookie, gaCookieClearDomains, nombresCookiesGa, opcionesMedicion } from "../src/analitica.ts"
+import { eleccionVigente, registroEleccion } from "../src/consentimiento.ts"
 import { convertirComaDecimal, filasCsv, sospechaComaDecimal } from "../src/csvLocal.ts"
 import { deshacer, pilaVacia, recordar, rehacer } from "../src/historial.ts"
 import { interpretarPlantillas } from "../src/plantillas.ts"
@@ -83,4 +84,26 @@ test("la elección de cookies caduca a los 12 meses", () => {
   assert.equal(eleccionVigente(vigente, ahora + 366 * 24 * 60 * 60 * 1000), null)
   assert.equal(eleccionVigente(JSON.stringify({ v: 2, choice: "aceptada", at: ahora }), ahora), null)
   assert.equal(eleccionVigente("{", ahora), null)
+  const registro = registroEleccion("rechazada", ahora)
+  assert.equal(registro.hasta, new Date(ahora + 365 * 24 * 60 * 60 * 1000).toISOString())
+  assert.equal(eleccionVigente(JSON.stringify(registro), Date.parse(registro.hasta) - 1000), "rechazada")
+  assert.equal(eleccionVigente(JSON.stringify(registro), Date.parse(registro.hasta) + 1000), null)
+})
+
+test("la medición apaga las señales y no comparte la cookie con el dominio padre", () => {
+  const local = opcionesMedicion("127.0.0.1", "http://127.0.0.1:43123/")
+  assert.equal(local.allow_google_signals, false)
+  assert.equal(local.allow_ad_personalization_signals, false)
+  assert.equal(local.send_page_view, true)
+  assert.equal(local.cookie_domain, "none")
+  assert.equal(dominioCookie("localhost"), "none")
+  const produccion = opcionesMedicion("cuadra.sebastianzaruha.com", "https://cuadra.sebastianzaruha.com/")
+  assert.equal(produccion.cookie_domain, "cuadra.sebastianzaruha.com")
+  const dominios = gaCookieClearDomains("cuadra.sebastianzaruha.com")
+  assert.ok(dominios.includes(""))
+  assert.ok(dominios.includes(".sebastianzaruha.com"))
+  const nombres = nombresCookiesGa("G-CUADRATEST01")
+  assert.ok(nombres.includes("_ga"))
+  assert.ok(nombres.includes(COOKIE_GA_RESIDUAL))
+  assert.equal(COOKIE_GA_RESIDUAL, "_ga_KR0J1VBPLH")
 })

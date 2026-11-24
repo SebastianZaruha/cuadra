@@ -32,6 +32,33 @@ function disableFlag(id: string): string {
   return `ga-disable-${id}`
 }
 
+/** Cookie que dejó la medición real de producción en visitas anteriores. */
+export const COOKIE_GA_RESIDUAL = "_ga_KR0J1VBPLH"
+
+export const DOMINIO_COOKIE_PRODUCCION = "cuadra.sebastianzaruha.com"
+
+/**
+ * En el dominio público la cookie es solo de ese host.
+ * En local y en las previews, `none` evita subirla al dominio padre.
+ */
+export function dominioCookie(hostname: string): "none" | typeof DOMINIO_COOKIE_PRODUCCION {
+  const host = hostname.trim().toLowerCase().replace(/\.$/, "")
+  if (host === DOMINIO_COOKIE_PRODUCCION || host.endsWith(`.${DOMINIO_COOKIE_PRODUCCION}`)) {
+    return DOMINIO_COOKIE_PRODUCCION
+  }
+  return "none"
+}
+
+export function opcionesMedicion(hostname: string, pageLocation: string) {
+  return {
+    cookie_domain: dominioCookie(hostname),
+    allow_google_signals: false as const,
+    allow_ad_personalization_signals: false as const,
+    send_page_view: true,
+    page_location: pageLocation,
+  }
+}
+
 export function gaCookieClearDomains(hostname: string): readonly string[] {
   const host = hostname.trim().toLowerCase()
   const domains = new Set<string>(["", "cuadra.sebastianzaruha.com", ".cuadra.sebastianzaruha.com", "sebastianzaruha.com", ".sebastianzaruha.com"])
@@ -64,9 +91,10 @@ export function gaCookieClearPaths(pathname: string): readonly string[] {
   return [...paths]
 }
 
-function nombresGa(measurementId?: string | null): string[] {
-  const names = new Set<string>(["_ga", "_gid", "_gat"])
+export function nombresCookiesGa(measurementId?: string | null): string[] {
+  const names = new Set<string>(["_ga", "_gid", "_gat", COOKIE_GA_RESIDUAL])
   if (measurementId?.startsWith("G-")) names.add(`_ga_${measurementId.slice(2)}`)
+  if (typeof document === "undefined") return [...names]
   for (const part of document.cookie.split(";")) {
     const name = part.split("=")[0]?.trim() ?? ""
     if (name.startsWith("_ga") || name.startsWith("_gid") || name.startsWith("_gat")) names.add(name)
@@ -78,7 +106,7 @@ export function deleteGaCookies(measurementId?: string | null): void {
   const paths = gaCookieClearPaths(location.pathname || "/")
   const domains = gaCookieClearDomains(location.hostname || "")
   const secure = location.protocol === "https:" ? [false, true] : [false]
-  for (const name of nombresGa(measurementId)) {
+  for (const name of nombresCookiesGa(measurementId)) {
     for (const domain of domains) {
       const domainAttr = domain ? `; domain=${domain}` : ""
       for (const path of paths) {
@@ -91,12 +119,21 @@ export function deleteGaCookies(measurementId?: string | null): void {
   }
 }
 
-let loadedId: string | null = null
 let scriptActivo = false
-let quitarBloqueo: (() => void) | null = null
+let collectBloqueado = false
+let filtroInstalado = false
 
 function esCollect(url: string): boolean {
   return /\/g\/collect(?:[?#]|$)/.test(url) || /\/j\/collect(?:[?#]|$)/.test(url)
+}
+
+function esSenalAnuncios(url: string): boolean {
+  return /stats\.g\.doubleclick\.net/i.test(url) || /doubleclick\.net/i.test(url) || /\/ads\/ga-audiences/i.test(url)
+}
+
+function urlBloqueada(url: string): boolean {
+  if (esSenalAnuncios(url)) return true
+  return collectBloqueado && esCollect(url)
 }
 
 function urlDe(input: RequestInfo | URL): string {
@@ -105,28 +142,22 @@ function urlDe(input: RequestInfo | URL): string {
   return input.url
 }
 
-function bloquearCollect(): void {
-  if (quitarBloqueo) return
-  const pasos: Array<() => void> = []
+function instalarFiltroRed(): void {
+  if (filtroInstalado || typeof window === "undefined") return
+  filtroInstalado = true
   if (typeof window.fetch === "function") {
     const original = window.fetch.bind(window)
     window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-      if (esCollect(urlDe(input))) return Promise.resolve(new Response(null, { status: 204 }))
+      if (urlBloqueada(urlDe(input))) return Promise.resolve(new Response(null, { status: 204 }))
       return original(input, init)
     }
-    pasos.push(() => {
-      window.fetch = original
-    })
   }
   if (typeof navigator.sendBeacon === "function") {
     const original = navigator.sendBeacon.bind(navigator)
     navigator.sendBeacon = (url: string | URL, data?: BodyInit | null) => {
-      if (esCollect(String(url))) return true
+      if (urlBloqueada(String(url))) return true
       return original(url, data)
     }
-    pasos.push(() => {
-      navigator.sendBeacon = original
-    })
   }
   const XHR = window.XMLHttpRequest
   if (XHR) {
@@ -139,49 +170,76 @@ function bloquearCollect(): void {
     } as typeof proto.open
     proto.send = function send(this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null) {
       const url = (this as XMLHttpRequest & { __cuadra?: string }).__cuadra ?? ""
-      if (esCollect(url)) return
+      if (urlBloqueada(url)) return
       return originalSend.call(this, body)
     } as typeof proto.send
-    pasos.push(() => {
-      proto.open = originalOpen
-      proto.send = originalSend
-    })
   }
-  quitarBloqueo = () => {
-    for (const paso of pasos) paso()
-    quitarBloqueo = null
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src")
+  if (descriptor?.set && descriptor.get) {
+    Object.defineProperty(HTMLImageElement.prototype, "src", {
+      configurable: true,
+      enumerable: descriptor.enumerable,
+      get() {
+        return descriptor.get!.call(this)
+      },
+      set(valor: string) {
+        if (urlBloqueada(String(valor))) return
+        descriptor.set!.call(this, valor)
+      },
+    })
   }
 }
 
+function bloquearCollect(): void {
+  collectBloqueado = true
+  instalarFiltroRed()
+}
+
 function permitirCollect(): void {
-  quitarBloqueo?.()
+  collectBloqueado = false
+  instalarFiltroRed()
+}
+
+function gtagSilencio() {
+  /* Consentimiento retirado: no se encola ni se envía. */
+}
+
+function asegurarGtag(): void {
+  window.dataLayer = window.dataLayer ?? []
+  if (typeof window.gtag === "function" && window.gtag !== gtagSilencio) return
+  window.gtag = function gtag() {
+    // gtag.js exige Arguments. Un rest Array no cuenta como comando.
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer?.push(arguments)
+  }
+}
+
+/** Config y page_view. Lo usan Aceptar y Guardar del panel, aunque el script ya estuviera cargado. */
+export function enviarMedicion(id: string): void {
+  asegurarGtag()
+  const pagina = `${location.origin}${location.pathname}`
+  window.gtag?.("js", new Date())
+  window.gtag?.("set", "allow_google_signals", false)
+  window.gtag?.("set", "allow_ad_personalization_signals", false)
+  window.gtag?.("consent", "default", {
+    analytics_storage: "granted",
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+  })
+  window.gtag?.("config", id, opcionesMedicion(location.hostname, pagina))
+  window.gtag?.("event", "page_view", { send_to: id, page_location: pagina })
 }
 
 export function enableGoogleAnalytics(id: string | null): void {
   if (!id) return
   permitirCollect()
   ;(window as unknown as Record<string, boolean>)[disableFlag(id)] = false
-  if (loadedId === id) return
-  loadedId = id
-  window.dataLayer = window.dataLayer ?? []
-  window.gtag = function gtag() {
-    // gtag.js exige Arguments. Un rest Array no cuenta como comando.
-    // eslint-disable-next-line prefer-rest-params
-    window.dataLayer?.push(arguments)
+  enviarMedicion(id)
+  if (document.querySelector(`script[data-cuadra-ga="${id}"]`)) {
+    scriptActivo = true
+    return
   }
-  window.gtag("js", new Date())
-  window.gtag("consent", "default", {
-    analytics_storage: "granted",
-    ad_storage: "denied",
-    ad_user_data: "denied",
-    ad_personalization: "denied",
-  })
-  window.gtag("config", id, {
-    cookie_domain: "none",
-    allow_google_signals: false,
-    allow_ad_personalization_signals: false,
-    page_location: `${location.origin}${location.pathname}`,
-  })
   const script = document.createElement("script")
   script.async = true
   script.src = `${GA_HOST}?id=${encodeURIComponent(id)}`
@@ -207,8 +265,5 @@ export function disableGoogleAnalytics(id: string | null): void {
   document.querySelectorAll("script[data-cuadra-ga]").forEach((node) => node.remove())
   document.querySelectorAll('script[src*="googletagmanager.com/gtag/js"]').forEach((node) => node.remove())
   scriptActivo = false
-  loadedId = null
-  window.gtag = function gtagSilencio() {
-    /* Consentimiento retirado: no se encola ni se envía. */
-  }
+  window.gtag = gtagSilencio
 }
