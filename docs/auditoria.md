@@ -112,7 +112,7 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 - La muestra de Ferretería La Cuadra se carga y se cuadra al abrir. El relato del API dice que son inventarios ficticios. Si el API falla, se dice; no hay números inventados en el cliente.
 - Resumen con barras de iguales, modificados, solo en A, solo en B y bloqueados. Los datos son `resumen`. La barra crece al entrar (~560 ms, escalonada). Con `prefers-reduced-motion: reduce` no hay animación.
 - Vidrio liso (`data-vl="desenfoque"`) en la barra, los dos ficheros, el resumen, el cierre y la paleta. La tabla no es vidrio: es la tabla original sobre papel.
-- Fondo papel `#f3efe6` con el radial pino del diseño original y un grano muy bajo, sin manchas de color. El acento es el pino `#1f6b4a`. El blur, el canto y la sombra `0 18px 50px` no se reescriben.
+- Fondo papel `#f3efe6` con el radial pino del diseño original y un grano muy bajo, sin manchas de color. El acento es el pino `#1f6b4a`. Sobre papel no hay humo detrás del texto: el panel lleva un tinte blanco uniforme, recortado al radio, con canto de 1 px y una sombra corta de tinta.
 - En escritorio la barra es pegajosa y el contenido pasa por debajo; la columna de ficheros también se queda. En móvil (por debajo de 1100 px) la barra no se pega, para no tapar la fila que se está leyendo. El resumen va antes que los ficheros.
 - Entrada de las piezas: opacidad y 8 px, 200 ms, escalonada. Se apaga con movimiento reducido.
 - «Quitar fichero A/B». Al quitar, el cuadre y las descargas se tiran.
@@ -140,7 +140,7 @@ Quedan fuera, con motivo: cuadre de 50 000 filas (el tope publicado sigue siendo
 | Cuentas, colaboración, guardar en el servidor | Rompe la API sin estado y pide despliegue |
 | Borrador automático | Haría falso «no guarda los ficheros». El que hay es opt-in y se puede borrar |
 | Decisiones en lote | El motivo es por fila; el lote invita a resolver sin mirar |
-| Interruptor claro/oscuro | El papel es la identidad. El vidrio se adapta con humo blanco y tinta oscura, sin segundo tema |
+| Interruptor claro/oscuro | El papel es la identidad. El vidrio lleva tinta oscura y un tinte blanco uniforme, sin segundo tema |
 | Filtro SVG de canto | Pedido explícito el desenfoque liso, igual en los tres motores |
 | Reescritura optimista distinta del dominio | El cliente ahora es el dominio. Anticipar otra vez duplicaría las reglas |
 | Métricas, clientes o testimonios inventados | No hay esos datos |
@@ -166,5 +166,5 @@ Comprobado en Chromium, en un panel real:
 - Sombra interior `rgb(170,170,170)` con alfa 0,45 en el canto, 0,65 arriba y 0,3 abajo, más `0 18px 50px rgba(0,0,0,.18)`. Esas dos las pone el módulo; la pantalla no las sustituye.
 - `backdrop-filter: blur(clamp(6px, 0.6vw, 12px))` y el prefijo `-webkit-`.
 - Humo blanco translúcido (`--vl-humo` y `--vl-humo-texto`) para que la tinta oscura cumpla AA sobre papel.
-- `prefers-reduced-transparency` sube el blur a 24 px y el humo blanco, no el negro del módulo, porque el texto ya no es blanco.
+- `prefers-reduced-transparency` sube el blur a 24 px y el tinte uniforme, sin manchas detrás de las letras.
 - Sin `backdrop-filter`, el panel cae a papel sólido `#fbf8f3` al 96 %. El `rgba(0,0,0,.62)` del módulo servía para texto blanco; con tinta oscura dejaría el texto ilegible. Safari y Firefox modernos pintan el mismo desenfoque. El canto doblado no se enciende.

@@ -521,19 +521,31 @@ input[role="switch"] { width: 2.4rem; height: 1.35rem; accent-color: var(--color
   }
 }
 
-/* Vidrio sobre papel: mismo blur, canto y sombra del módulo. Humo blanco y tinta original. */
+/* Vidrio sobre papel: sin humo detrás del texto. El tinte es uniforme y no se sale del radio. */
 .vidrio-liquido {
   --vl-texto: #1c2430;
   --vl-texto-2: #3e4a45;
-  --vl-humo: rgba(255, 255, 255, 0.58);
-  --vl-humo-texto: rgba(255, 255, 255, 0.72);
-  --vl-linea: rgba(28, 36, 48, 0.16);
-  --vl-activo: rgba(255, 255, 255, 0.5);
+  --vl-humo: transparent;
+  --vl-humo-texto: transparent;
+  --vl-humo-texto-borde: 0px;
+  --vl-linea: rgba(28, 36, 48, 0.12);
+  --vl-activo: transparent;
 }
 .vidrio-liquido[data-vl="desenfoque"],
 .vidrio-liquido[data-vl="refraccion"] {
+  overflow: hidden;
   color: #1c2430;
   border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(170, 170, 170, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 8px 22px rgba(28, 36, 48, 0.06);
+}
+.vidrio-liquido[data-vl] :is(.vl-humo, .sheet-head h2, .banner > p, .app-promo-text, .pause-word, .pause-hint)::before {
+  content: none;
+  background: none;
+  box-shadow: none;
 }
 .vidrio-liquido[data-vl] .control:focus-visible,
 .vidrio-liquido[data-vl] :focus-visible {
@@ -543,8 +555,12 @@ input[role="switch"] { width: 2.4rem; height: 1.35rem; accent-color: var(--color
 @media (prefers-reduced-transparency: reduce) {
   .vidrio-liquido {
     --vl-blur: 24px;
-    --vl-humo: rgba(255, 255, 255, 0.88);
-    --vl-humo-texto: rgba(255, 255, 255, 0.92);
+    --vl-humo: transparent;
+    --vl-humo-texto: transparent;
+  }
+  .vidrio-liquido[data-vl="desenfoque"],
+  .vidrio-liquido[data-vl="refraccion"] {
+    background: rgba(255, 255, 255, 0.72);
   }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
