@@ -34,11 +34,11 @@ function disableFlag(id: string): string {
 
 export function gaCookieClearDomains(hostname: string): readonly string[] {
   const host = hostname.trim().toLowerCase()
-  const domains = new Set<string>([""])
+  const domains = new Set<string>(["", "cuadra.sebastianzaruha.com", ".cuadra.sebastianzaruha.com", "sebastianzaruha.com", ".sebastianzaruha.com"])
   if (!host) return [...domains]
   domains.add(host)
+  domains.add(`.${host}`)
   if (host.startsWith("www.")) domains.add(host.slice(4))
-  else domains.add(`.${host}`)
   const labels = host.split(".").filter(Boolean)
   const ip = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host) || host.includes(":")
   if (!ip && labels.length >= 3) {
@@ -128,6 +128,25 @@ function bloquearCollect(): void {
       navigator.sendBeacon = original
     })
   }
+  const XHR = window.XMLHttpRequest
+  if (XHR) {
+    const proto = XHR.prototype
+    const originalOpen = proto.open
+    const originalSend = proto.send
+    proto.open = function open(this: XMLHttpRequest, method: string, url: string | URL, async?: boolean, username?: string | null, password?: string | null) {
+      ;(this as XMLHttpRequest & { __cuadra?: string }).__cuadra = String(url)
+      return originalOpen.call(this, method, url, async ?? true, username, password)
+    } as typeof proto.open
+    proto.send = function send(this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null) {
+      const url = (this as XMLHttpRequest & { __cuadra?: string }).__cuadra ?? ""
+      if (esCollect(url)) return
+      return originalSend.call(this, body)
+    } as typeof proto.send
+    pasos.push(() => {
+      proto.open = originalOpen
+      proto.send = originalSend
+    })
+  }
   quitarBloqueo = () => {
     for (const paso of pasos) paso()
     quitarBloqueo = null
@@ -151,7 +170,18 @@ export function enableGoogleAnalytics(id: string | null): void {
     window.dataLayer?.push(arguments)
   }
   window.gtag("js", new Date())
-  window.gtag("config", id, { cookie_domain: "none" })
+  window.gtag("consent", "default", {
+    analytics_storage: "granted",
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+  })
+  window.gtag("config", id, {
+    cookie_domain: "none",
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
+    page_location: `${location.origin}${location.pathname}`,
+  })
   const script = document.createElement("script")
   script.async = true
   script.src = `${GA_HOST}?id=${encodeURIComponent(id)}`

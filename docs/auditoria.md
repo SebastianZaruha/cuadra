@@ -127,9 +127,9 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 - Excel a CSV y Latin-1 en el cliente, con aviso. La coma decimal solo si se pulsa el botón.
 - Tolerancia de cantidad explícita, con motivo, sin tocar la clave. El coste, si se mapea, solo estima un valor.
 - Errores de decisión con `identificador` propio.
-- Rutas `/legal` y `/legal-en` con el placeholder «Texto legal pendiente de revisión». GA4 solo si existe `VITE_GA_ID` con forma `G-…` y la persona acepta. Sin ese valor no hay banner ni script.
+- `/legal` y `/legal-en` con el texto del asesor, índice y anclas. GA4 solo si existe `VITE_GA_ID` con forma `G-…` y la persona acepta. Sin ese valor no hay banner ni script. La elección dura 12 meses.
 
-Quedan fuera, con motivo: cuadre de 50 000 filas (el tope publicado sigue siendo 2 000 filas y 1 MiB; subirlo cambia el producto, no solo el transporte); tolerancia de precio dentro del dominio (el coste de la pantalla es una estimación); los textos legales definitivos.
+Quedan fuera, con motivo: cuadre de 50 000 filas (el tope publicado sigue siendo 2 000 filas y 1 MiB; subirlo cambia el producto, no solo el transporte) y tolerancia de precio dentro del dominio (el coste de la pantalla es una estimación).
 
 ## Qué se rechazó, y por qué
 
@@ -152,7 +152,7 @@ Ordenado por lo que más cambiaría el uso real, no por lo más vistoso.
 1. **Sugerir columnas sin exigir mayúsculas ni acentos.** Solo en la pantalla. La comparación del cuadre sigue siendo exacta.
 2. **Más de 2 000 filas.** El tope sigue siendo 2 000 filas y 1 MiB por fichero, ahora en el navegador. Subir a 50 000 filas es un cambio de producto y de memoria, no un botón.
 3. **Tolerancia de precio en el dominio.** El coste de la pantalla es una estimación. Meter el precio en el emparejamiento cambiaría el contrato.
-4. **Textos legales definitivos.** `/legal` y `/legal-en` existen. El asesor aún no ha entregado el texto.
+4. **Ajustes de la propiedad de GA4 en el administrador de Google** (conservación, Signals, términos). El código no puede hacerlos.
 5. **Podar** Geist y componentes de UI que nadie monta.
 
 ## Vidrio

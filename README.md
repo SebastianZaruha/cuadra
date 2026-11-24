@@ -36,7 +36,7 @@ El borrador y las plantillas de columnas se guardan solo si los activas, y solo 
 
 ## Qué no hace
 
-No adivina que dos claves se parecen. No abre PDF ni imágenes. No tiene cuentas. No envía los CSV a un servidor. No hay analítica mientras `VITE_GA_ID` esté vacío. Las páginas `/legal` y `/legal-en` dicen «Texto legal pendiente de revisión».
+No adivina que dos claves se parecen. No abre PDF ni imágenes. No tiene cuentas. No envía los CSV a un servidor. Sin `VITE_GA_ID` no hay banner ni script de analítica. `/legal` y `/legal-en` tienen el aviso legal, la privacidad y las cookies.
 
 Por encima de 2 000 filas o 1 MiB por fichero no hay cuadre: se rechaza el archivo entero. 50 000 filas quedan fuera de este corte. El detalle está en [docs/auditoria.md](docs/auditoria.md).
 
@@ -65,8 +65,8 @@ Licencia MIT, Sebastián Zaruha, 2026. Cómo desplegarlo, sin API y sin tocar DN
 
 ### Más adelante
 
-Archivos de decenas de miles de filas, tolerancia de precio dentro del dominio y los textos legales definitivos. Motivos en la auditoría.
+Archivos de decenas de miles de filas y tolerancia de precio dentro del dominio. Motivos en la auditoría.
 
 ## English
 
-Cuadra compares two inventory CSV exports in the browser and shows what changed, what is missing, and what cannot be matched safely. Keys are exact. Files are not uploaded. Open the app and the fictional hardware-store sample is already reconciled. The Python package stays in the repo as the reference implementation and is not part of the Vercel deploy. `/legal` and `/legal-en` are placeholders pending counsel. Analytics stay off until `VITE_GA_ID` is a real measurement id and the visitor accepts.
+Cuadra compares two inventory CSV exports in the browser and shows what changed, what is missing, and what cannot be matched safely. Keys are exact. Files are not uploaded. Open the app and the fictional hardware-store sample is already reconciled. The Python package stays in the repo as the reference implementation and is not part of the Vercel deploy. `/legal` and `/legal-en` carry the legal notice, privacy policy and cookie policy. Analytics stay off until `VITE_GA_ID` is a real measurement id and the visitor accepts.

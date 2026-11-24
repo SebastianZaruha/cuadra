@@ -1,6 +1,6 @@
 import type { Mapeo } from "./tipos.ts"
 
-const CLAVE = "cuadra-plantillas-v1"
+export const CLAVE_PLANTILLAS = "cuadra-plantillas-v1"
 
 export type Plantilla = { nombre: string; mapeo: Mapeo; coste: string }
 
@@ -33,7 +33,7 @@ export function interpretarPlantillas(texto: string): Plantilla[] {
 
 export function leerPlantillas(): Plantilla[] {
   try {
-    return interpretarPlantillas(localStorage.getItem(CLAVE) ?? "[]")
+    return interpretarPlantillas(localStorage.getItem(CLAVE_PLANTILLAS) ?? "[]")
   } catch {
     return []
   }
@@ -41,6 +41,22 @@ export function leerPlantillas(): Plantilla[] {
 
 export function guardarPlantilla(plantilla: Plantilla): Plantilla[] {
   const siguientes = [...leerPlantillas().filter((item) => item.nombre !== plantilla.nombre), plantilla]
-  localStorage.setItem(CLAVE, JSON.stringify(siguientes))
+  localStorage.setItem(CLAVE_PLANTILLAS, JSON.stringify(siguientes))
   return siguientes
+}
+
+export function plantillasGuardadas(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_PLANTILLAS) !== null
+  } catch {
+    return false
+  }
+}
+
+export function activarPlantillas(): void {
+  if (!plantillasGuardadas()) localStorage.setItem(CLAVE_PLANTILLAS, "[]")
+}
+
+export function borrarPlantillas(): void {
+  localStorage.removeItem(CLAVE_PLANTILLAS)
 }

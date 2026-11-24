@@ -15,20 +15,20 @@ import {
   obtenerLimites,
   reconciliar,
 } from "./api.ts"
-import { analiticaPreparada } from "./analitica.ts"
 import { borrarBorrador, guardarBorrador, leerBorrador, type Borrador } from "./borrador.ts"
-import { BannerAnalitica } from "./componentes/BannerAnalitica.tsx"
 import { Barra } from "./componentes/Barra.tsx"
 import { Cierre } from "./componentes/Cierre.tsx"
 import { PanelFichero } from "./componentes/Ficheros.tsx"
 import { Informe } from "./componentes/Informe.tsx"
 import { Paleta, type Orden } from "./componentes/Paleta.tsx"
+import { Pie } from "./componentes/Pie.tsx"
 import { Portada } from "./componentes/Portada.tsx"
 import { TablaCuadre } from "./componentes/Tabla.tsx"
 import { costesPorIdentificador, convertirComaDecimal, leerTextoLocal } from "./csvLocal.ts"
 import { deshacer, pilaVacia, recordar, rehacer, type Pila } from "./historial.ts"
 import { decisionesDesdeFilas, sugerirColumna } from "./opciones.ts"
-import { guardarPlantilla, leerPlantillas, type Plantilla } from "./plantillas.ts"
+import { activarPlantillas, borrarPlantillas, guardarPlantilla, leerPlantillas, plantillasGuardadas, type Plantilla } from "./plantillas.ts"
+import { textosDe } from "./textosUi.ts"
 import { csvDiferencias, dentroDeTolerancia, valorDiferencias } from "./utilCuadre.ts"
 import type {
   DecisionEnviada,
@@ -97,8 +97,11 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("")
   const [enlaces, setEnlaces] = useState<{ nombre: string; url: string }[]>([])
   const [pila, setPila] = useState<Pila<DecisionEnviada[]>>(pilaVacia())
-  const [borradorActivo, setBorradorActivo] = useState(false)
-  const [plantillas, setPlantillas] = useState<Plantilla[]>(() => leerPlantillas())
+  const t = textosDe("es")
+  const [borradorActivo, setBorradorActivo] = useState(() => leerBorrador() !== null)
+  const [plantillasActivas, setPlantillasActivas] = useState(() => plantillasGuardadas())
+  const [plantillas, setPlantillas] = useState<Plantilla[]>(() => (plantillasGuardadas() ? leerPlantillas() : []))
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false)
   const [costeA, setCosteA] = useState("")
   const [costeB, setCosteB] = useState("")
   const [tolerancia, setTolerancia] = useState("0")
@@ -201,8 +204,10 @@ export default function App() {
     let vivo = true
     const gen = ++generacion.current
     const guardado = leerBorrador()
-    if (guardado) void restaurarBorrador(guardado, gen, () => vivo)
-    else void cargarDemo(gen, () => vivo, false)
+    if (guardado) {
+      setBorradorActivo(true)
+      void restaurarBorrador(guardado, gen, () => vivo)
+    } else void cargarDemo(gen, () => vivo, false)
     return () => {
       vivo = false
     }
@@ -519,12 +524,11 @@ export default function App() {
     { id: "rehacer", etiqueta: "Rehacer", disabled: pila.futuro.length === 0, run: alRehacer },
     {
       id: "borrador",
-      etiqueta: borradorActivo ? "Borrar borrador local" : "Activar borrador en este navegador",
+      etiqueta: t.borradorEtiqueta,
       run: () => {
         if (borradorActivo) {
           borrarBorrador()
           setBorradorActivo(false)
-          setAviso("Borrador borrado de este navegador.")
         } else setBorradorActivo(true)
       },
     },
@@ -541,7 +545,6 @@ export default function App() {
           Ir a los ficheros
         </a>
         <Barra ocupado={ocupado} />
-        {analiticaPreparada() ? <BannerAnalitica /> : null}
         <Paleta abierta={paletaAbierta} ordenes={ordenes} onCerrar={() => setPaletaAbierta(false)} />
         <main id="contenido" aria-busy={ocupado} className="grid gap-4">
           {falloLimites ? (
@@ -622,26 +625,88 @@ export default function App() {
                       cantidad de hasta N. El motivo es obligatorio.
                       {valor !== null ? ` Valor estimado de las diferencias: ${valor}.` : ""}
                     </p>
-                    <div className="controles">
-                      <button type="button" className="boton-papel" onClick={() => setBorradorActivo(true)} disabled={borradorActivo}>
-                        Activar borrador en este navegador
-                      </button>
-                      <button
-                        type="button"
-                        className="boton-papel"
-                        onClick={() => {
-                          borrarBorrador()
-                          setBorradorActivo(false)
-                          setAviso("Borrador borrado de este navegador.")
-                        }}
-                        disabled={!borradorActivo && !leerBorrador()}
-                      >
-                        Borrar borrador
-                      </button>
+                    <div className="grid gap-3">
+                      <label className="opcion-radio">
+                        <input
+                          type="checkbox"
+                          role="switch"
+                          checked={borradorActivo}
+                          onChange={(evento) => {
+                            if (evento.target.checked) setBorradorActivo(true)
+                            else {
+                              borrarBorrador()
+                              setBorradorActivo(false)
+                            }
+                          }}
+                        />
+                        <span>{t.borradorEtiqueta}</span>
+                      </label>
+                      <p className="aviso-suave">{t.borradorAyuda}</p>
+                      {borradorActivo ? <p role="status">{t.borradorAviso}</p> : null}
+                      <label className="opcion-radio">
+                        <input
+                          type="checkbox"
+                          role="switch"
+                          checked={plantillasActivas}
+                          onChange={(evento) => {
+                            if (evento.target.checked) {
+                              activarPlantillas()
+                              setPlantillasActivas(true)
+                              setPlantillas(leerPlantillas())
+                            } else {
+                              borrarPlantillas()
+                              setPlantillasActivas(false)
+                              setPlantillas([])
+                            }
+                          }}
+                        />
+                        <span>{t.plantillasEtiqueta}</span>
+                      </label>
+                      <p className="aviso-suave">{t.plantillasAyuda}</p>
+                      <div className="controles">
+                        <button
+                          type="button"
+                          className="boton-papel"
+                          onClick={() => {
+                            if (leerBorrador() === null && !plantillasGuardadas()) {
+                              setAviso(t.borrarVacio)
+                              return
+                            }
+                            setConfirmarBorrado(true)
+                          }}
+                        >
+                          {t.borrar}
+                        </button>
+                        <a href={t.borrarMasHref}>{t.borrarMas}</a>
+                      </div>
+                      {confirmarBorrado ? (
+                        <div className="superficie" role="dialog" aria-labelledby="titulo-borrar-datos">
+                          <h3 id="titulo-borrar-datos">{t.borrarTitulo}</h3>
+                          <p>{t.borrarTexto}</p>
+                          <div className="botones-iguales">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                const habia = leerBorrador() !== null || plantillasGuardadas()
+                                borrarBorrador()
+                                borrarPlantillas()
+                                setBorradorActivo(false)
+                                setPlantillasActivas(false)
+                                setPlantillas([])
+                                setConfirmarBorrado(false)
+                                setAviso(habia ? t.borrarHecho : t.borrarVacio)
+                              }}
+                            >
+                              {t.borrarConfirmar}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setConfirmarBorrado(false)}>
+                              {t.borrarCancelar}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                    {borradorActivo ? (
-                      <p role="status">Borrador local activo. Los CSV no salen de este navegador.</p>
-                    ) : null}
                   </section>
                   <TablaCuadre
                     filas={resultado.filas}
@@ -694,7 +759,8 @@ export default function App() {
                 plantillas={plantillas}
                 onGuardarPlantilla={(nombre) => {
                   if (!ficheroA) return
-                  setPlantillas(guardarPlantilla({ nombre, mapeo: ficheroA.mapeo, coste: costeA }))
+                  const siguiente = { nombre, mapeo: ficheroA.mapeo, coste: costeA }
+                  setPlantillas(plantillasActivas ? guardarPlantilla(siguiente) : [...plantillas.filter((item) => item.nombre !== nombre), siguiente])
                 }}
                 onAplicarPlantilla={(nombre) => {
                   const plantilla = plantillas.find((item) => item.nombre === nombre)
@@ -732,7 +798,8 @@ export default function App() {
                 plantillas={plantillas}
                 onGuardarPlantilla={(nombre) => {
                   if (!ficheroB) return
-                  setPlantillas(guardarPlantilla({ nombre, mapeo: ficheroB.mapeo, coste: costeB }))
+                  const siguiente = { nombre, mapeo: ficheroB.mapeo, coste: costeB }
+                  setPlantillas(plantillasActivas ? guardarPlantilla(siguiente) : [...plantillas.filter((item) => item.nombre !== nombre), siguiente])
                 }}
                 onAplicarPlantilla={(nombre) => {
                   const plantilla = plantillas.find((item) => item.nombre === nombre)
@@ -751,17 +818,7 @@ export default function App() {
             </aside>
           </div>
         </main>
-        <footer className="pie">
-          <p>
-            El cuadre ocurre en este navegador: los ficheros no se envían a ningún servidor. Si cierras la pestaña sin
-            descargar la sesión ni activar el borrador, el cuadre se pierde. La clave se compara tal cual. La coma
-            decimal solo se convierte si lo pides.
-          </p>
-          <nav className="pie-nav" aria-label="Información legal">
-            <a href="/legal">Información legal</a>
-            <a href="/legal-en">Legal notice</a>
-          </nav>
-        </footer>
+        <Pie idioma="es" />
       </div>
       <Informe resumen={resultado?.resumen ?? null} filas={filasVisibles} valor={valor} />
     </>

@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 import { usePanelVidrio } from "../comun/estilo/usePanelVidrio.ts"
+import { textosDe } from "../textosUi.ts"
 import type { Resumen } from "../tipos.ts"
 
 type Props = {
@@ -29,6 +30,7 @@ export function Cierre({
   onDiferencias,
 }: Props) {
   const ref = usePanelVidrio<HTMLElement>()
+  const t = textosDe("es")
   const aviso = completaPermitida
     ? "No quedan pendientes ni bloqueados. El inventario y el historial salen marcados como completos."
     : `Exportación completa bloqueada: ${resumen.pendientes} pendientes y ${resumen.bloqueados} bloqueados.`
@@ -44,6 +46,9 @@ export function Cierre({
       <div className="vl-apartados">
         <p id="aviso-exportacion" className="vl-apartado">
           {aviso}
+        </p>
+        <p className="vl-apartado">
+          {t.resultadoLargoAntes} <a href={t.resultadoLargoHref}>{t.resultadoLargoEnlace}</a>
         </p>
         <p className="vl-apartado">
           La parcial incluye solo lo ya resuelto y se marca como parcial en el nombre y en el contenido. Las filas

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 import { ETIQUETA_FILTRO, ayudaFila, diferenciaCantidad, etiquetaCategoria, opcionesDecision, pasaFiltro } from "../opciones.ts"
+import { textosDe } from "../textosUi.ts"
 import type { DecisionEnviada, ErrorValidacion, Fila, Filtro, Resumen } from "../tipos.ts"
 
 type Props = {
@@ -41,6 +42,7 @@ export function TablaCuadre({
           Pendientes: {resumen.pendientes}. Resueltos: {resumen.resueltos}. Bloqueados: {resumen.bloqueados}.
         </p>
       </div>
+      <p>{textosDe("es").resultadoCorto}</p>
       <div className="filtros" role="group" aria-label="Filtrar filas">
         {ETIQUETA_FILTRO.map((item) => (
           <Button

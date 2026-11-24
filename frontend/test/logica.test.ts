@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import { interpretarBorrador } from "../src/borrador.ts"
+import { eleccionVigente } from "../src/consentimiento.ts"
 import { convertirComaDecimal, filasCsv, sospechaComaDecimal } from "../src/csvLocal.ts"
 import { deshacer, pilaVacia, recordar, rehacer } from "../src/historial.ts"
 import { interpretarPlantillas } from "../src/plantillas.ts"
@@ -73,4 +74,13 @@ test("la tolerancia no empareja descripciones distintas ni claves distintas", ()
   assert.equal(dentroDeTolerancia(misma, 0.4), false)
   assert.equal(dentroDeTolerancia(texto, 5), false)
   assert.equal(dentroDeTolerancia(misma, 0), false)
+})
+
+test("la elección de cookies caduca a los 12 meses", () => {
+  const ahora = Date.UTC(2026, 10, 24)
+  const vigente = JSON.stringify({ v: 1, choice: "aceptada", at: ahora })
+  assert.equal(eleccionVigente(vigente, ahora + 364 * 24 * 60 * 60 * 1000), "aceptada")
+  assert.equal(eleccionVigente(vigente, ahora + 366 * 24 * 60 * 60 * 1000), null)
+  assert.equal(eleccionVigente(JSON.stringify({ v: 2, choice: "aceptada", at: ahora }), ahora), null)
+  assert.equal(eleccionVigente("{", ahora), null)
 })

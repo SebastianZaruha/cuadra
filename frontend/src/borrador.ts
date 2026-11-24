@@ -1,6 +1,6 @@
 import type { DecisionEnviada, Delimitador, Mapeo } from "./tipos.ts"
 
-const CLAVE = "cuadra-borrador-v1"
+export const CLAVE_BORRADOR = "cuadra-borrador-v1"
 
 export type Borrador = {
   version: 1
@@ -63,7 +63,7 @@ export function interpretarBorrador(texto: string): Borrador | null {
 
 export function leerBorrador(): Borrador | null {
   try {
-    const texto = localStorage.getItem(CLAVE)
+    const texto = localStorage.getItem(CLAVE_BORRADOR)
     return texto ? interpretarBorrador(texto) : null
   } catch {
     return null
@@ -71,9 +71,9 @@ export function leerBorrador(): Borrador | null {
 }
 
 export function guardarBorrador(borrador: Borrador): void {
-  localStorage.setItem(CLAVE, JSON.stringify(borrador))
+  localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(borrador))
 }
 
 export function borrarBorrador(): void {
-  localStorage.removeItem(CLAVE)
+  localStorage.removeItem(CLAVE_BORRADOR)
 }

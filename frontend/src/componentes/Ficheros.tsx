@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 import { usePanelVidrio } from "../comun/estilo/usePanelVidrio.ts"
+import { textosDe } from "../textosUi.ts"
 import { sospechaComaDecimal } from "../csvLocal.ts"
 import type { Delimitador, FicheroUi, Mapeo } from "../tipos.ts"
 
@@ -53,6 +54,7 @@ export function PanelFichero({
   const [nombrePlantilla, setNombrePlantilla] = useState("")
   const titulo = lado === "A" ? "Fichero A" : "Fichero B"
   const retraso = lado === "A" ? "entrada entrada-2" : "entrada entrada-3"
+  const t = textosDe("es")
   return (
     <section ref={ref} className={`vidrio-liquido panel-vidrio ${retraso}`} aria-labelledby={`${base}-titulo`}>
       <h2 id={`${base}-titulo`} className="vl-humo titulo-fichero">
@@ -87,6 +89,9 @@ export function PanelFichero({
           </button>
         ) : null}
       </div>
+      <p className="aviso-suave">
+        {t.avisoFicheros} <a href={t.avisoFicherosHref}>{t.avisoFicherosMas}</a>
+      </p>
       <p className="vl-humo nombre-fichero">
         {fichero ? (
           <>
