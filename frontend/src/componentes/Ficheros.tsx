@@ -58,9 +58,11 @@ export function PanelFichero({
       <h2 id={`${base}-titulo`} className="vl-humo titulo-fichero">
         {titulo}
       </h2>
-      <p className="vl-humo aviso-suave">
-        UTF-8, hasta {maxBytes.toLocaleString("es")} bytes. La clave se compara tal cual, después de recortar espacios.
-      </p>
+      <p className="subtitulo">CSV o Excel, hasta {Math.round(maxBytes / (1024 * 1024))} MB.</p>
+      <details className="detalles">
+        <summary>Detalles del fichero</summary>
+        <p>Si no es UTF-8 se lee como Latin-1 y se avisa. La clave se compara tal cual, solo se quitan los espacios de los extremos.</p>
+      </details>
       <div className="fila-archivo">
         <div className="archivo">
           <label htmlFor={lado === "A" ? "cuadra-archivo-a" : "cuadra-archivo-b"} className="control">
@@ -103,10 +105,10 @@ export function PanelFichero({
             <legend className="text-sm font-medium">Delimitador</legend>
             <p className="aviso-suave">
               {fichero.origenDelimitador === "detectado"
-                ? "Detectado en la cabecera. Cámbialo si el fichero usa el otro."
+                ? "Lo leímos en la cabecera. Cámbialo si hace falta."
                 : fichero.origenDelimitador === "elegido"
-                  ? "Elegido. Cuadra no cambia esta elección en silencio."
-                  : "Hay coma y punto y coma en la cabecera. Elige uno para continuar."}
+                  ? "Usaremos el separador que ves marcado."
+                  : "Hay coma y punto y coma. Elige uno."}
             </p>
             <div className="fila-radios">
               <label className="opcion-radio">
@@ -142,7 +144,7 @@ export function PanelFichero({
             <div className="grid gap-3">
               {CAMPOS.map(({ campo, etiqueta }) => (
                 <div key={campo} className="grid gap-1.5">
-                  <Label htmlFor={`${base}-${campo}`}>{etiqueta}</Label>
+                  <Label className="etiqueta" htmlFor={`${base}-${campo}`}>{etiqueta}</Label>
                   <select
                     id={`${base}-${campo}`}
                     className="campo"
@@ -159,7 +161,7 @@ export function PanelFichero({
                 </div>
               ))}
               <div className="grid gap-1.5">
-                <Label htmlFor={`${base}-coste`}>Coste (opcional, no se empareja)</Label>
+                <Label className="etiqueta" htmlFor={`${base}-coste`}>Coste, si quieres valorar las diferencias</Label>
                 <select id={`${base}-coste`} className="campo" value={coste} onChange={(evento) => onCoste(evento.target.value)}>
                   <option value="">Sin columna de coste</option>
                   {fichero.columnas.map((columna) => (
@@ -261,7 +263,7 @@ export function AccionReconciliar({
   return (
     <div ref={ref} className="vidrio-liquido panel-vidrio entrada entrada-4 accion-cuadrar">
       <button type="button" className="boton-primario" disabled={!listo || ocupado} onClick={onClick}>
-        Reconciliar
+        Comparar ficheros
       </button>
       {!ocupado && hayFicheros && !listo ? (
         <p className="vl-humo aviso-suave">Elige el delimitador y las tres columnas en los dos ficheros para reconciliar.</p>

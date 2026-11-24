@@ -10,6 +10,8 @@ type Props = {
   resumen: Resumen | null
   esperandoReconciliar: boolean
   ocupado: boolean
+  listo: boolean
+  onComparar: () => void
   onDemo: () => void
 }
 
@@ -21,41 +23,41 @@ export function Portada({
   resumen,
   esperandoReconciliar,
   ocupado,
+  listo,
+  onComparar,
   onDemo,
 }: Props) {
   const ref = usePanelVidrio<HTMLElement>()
-  const titulo = cargando ? "Cargando la muestra" : resumen ? "Resumen" : "Todavía no hay cuadre"
+  const megas = limites ? Math.round(limites.max_bytes / (1024 * 1024)) : 1
   return (
     <section ref={ref} id="cuadre" className="vidrio-liquido panel-vidrio entrada" aria-labelledby="titulo-portada">
       <div className="cabecera-portada">
-        <h2 id="titulo-portada" className="vl-humo titulo-portada">
-          {titulo}
-        </h2>
-        <button type="button" className="control" onClick={onDemo} disabled={ocupado}>
-          Cargar demostración
-        </button>
+        <div>
+          <h2 id="titulo-portada" className="vl-humo titulo-portada">
+            {cargando ? "Preparando el ejemplo" : "Cuadra tu inventario en un minuto"}
+          </h2>
+          <p className="subtitulo">Compara dos listas y ve qué cambió, qué falta y qué no cuadra.</p>
+        </div>
+        <div className="acciones-hero">
+          <button type="button" className="boton-primario" onClick={onComparar} disabled={!listo || ocupado}>
+            Comparar ficheros
+          </button>
+          <button type="button" className="control" onClick={onDemo} disabled={ocupado}>
+            Probar con ejemplo
+          </button>
+        </div>
       </div>
-      <div className="vl-apartados">
-        <p className="vl-apartado">
-          Compara dos exportaciones de inventario y deja a la vista lo que cambió, lo que falta y lo que no se puede
-          emparejar con seguridad. No adivina claves ni sustituye a un ERP.
+      {muestra && relato ? <p className="subtitulo">{relato}</p> : null}
+      {esperandoReconciliar ? <p className="subtitulo">Las columnas están listas. Compara los ficheros.</p> : null}
+      <details className="detalles">
+        <summary>Detalles · {megas} MB · {limites ? limites.max_filas.toLocaleString("es") : "2.000"} filas</summary>
+        <p>
+          Cada fichero puede llegar a {megas} MB
+          {limites ? ` y ${limites.max_filas.toLocaleString("es")} filas` : ""}. Los números usan punto, o coma si pides
+          convertirla. La sesión guardada corresponde a esta versión
+          {limites ? ` (${limites.schema_version})` : ""}.
         </p>
-        {muestra && relato ? <p className="vl-apartado">{relato}</p> : null}
-        {limites ? (
-          <p className="vl-apartado">
-            Límites: {limites.max_bytes.toLocaleString("es")} bytes y {limites.max_filas.toLocaleString("es")} filas por
-            fichero. Como mucho {limites.max_decimales} decimales. Sesión versión {limites.schema_version}.
-          </p>
-        ) : null}
-        {cargando ? (
-          <p className="vl-apartado" role="status">
-            Cargando la muestra de Ferretería La Cuadra…
-          </p>
-        ) : null}
-        {esperandoReconciliar ? (
-          <p className="vl-apartado">El mapeo está listo. Reconcilia para ver las diferencias.</p>
-        ) : null}
-      </div>
+      </details>
       {resumen ? <ResumenVisual resumen={resumen} /> : null}
     </section>
   )

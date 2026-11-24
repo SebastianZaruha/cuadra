@@ -20,7 +20,7 @@ import { borrarBorrador, guardarBorrador, leerBorrador, type Borrador } from "./
 import { BannerAnalitica } from "./componentes/BannerAnalitica.tsx"
 import { Barra } from "./componentes/Barra.tsx"
 import { Cierre } from "./componentes/Cierre.tsx"
-import { AccionReconciliar, PanelFichero } from "./componentes/Ficheros.tsx"
+import { PanelFichero } from "./componentes/Ficheros.tsx"
 import { Informe } from "./componentes/Informe.tsx"
 import { Paleta, type Orden } from "./componentes/Paleta.tsx"
 import { Portada } from "./componentes/Portada.tsx"
@@ -501,7 +501,7 @@ export default function App() {
   }
 
   const ordenes: Orden[] = [
-    { id: "demo", etiqueta: "Cargar demostración", run: alDemo },
+    { id: "demo", etiqueta: "Probar con ejemplo", run: alDemo },
     { id: "a", etiqueta: "Subir fichero A", run: () => document.getElementById("cuadra-archivo-a")?.click() },
     { id: "b", etiqueta: "Subir fichero B", run: () => document.getElementById("cuadra-archivo-b")?.click() },
     { id: "pendientes", etiqueta: "Ver pendientes", run: () => setFiltro("pendientes") },
@@ -540,7 +540,7 @@ export default function App() {
         <a href="#ficheros" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-[#f4f1ea] focus:p-2 focus:text-[#1c2430]">
           Ir a los ficheros
         </a>
-        <Barra muestra={muestra} ocupado={ocupado} />
+        <Barra ocupado={ocupado} />
         {analiticaPreparada() ? <BannerAnalitica /> : null}
         <Paleta abierta={paletaAbierta} ordenes={ordenes} onCerrar={() => setPaletaAbierta(false)} />
         <main id="contenido" aria-busy={ocupado} className="grid gap-4">
@@ -577,19 +577,21 @@ export default function App() {
                 resumen={hayCuadre ? resultado?.resumen ?? null : null}
                 esperandoReconciliar={esperandoReconciliar}
                 ocupado={ocupado}
+                listo={listoParaCuadrar}
+                onComparar={() => void alReconciliar()}
                 onDemo={alDemo}
               />
               {hayCuadre && resultado?.ok && resultado.resumen ? (
                 <>
                   <section className="superficie herramientas">
                     <div className="controles">
-                      <button type="button" className="boton-primario" onClick={alDeshacer} disabled={pila.pasado.length === 0}>
+                      <button type="button" className="boton-suave" onClick={alDeshacer} disabled={pila.pasado.length === 0}>
                         Deshacer
                       </button>
-                      <button type="button" className="boton-primario" onClick={alRehacer} disabled={pila.futuro.length === 0}>
+                      <button type="button" className="boton-suave" onClick={alRehacer} disabled={pila.futuro.length === 0}>
                         Rehacer
                       </button>
-                      <button type="button" className="boton-primario" onClick={() => setPaletaAbierta(true)}>
+                      <button type="button" className="boton-suave" onClick={() => setPaletaAbierta(true)}>
                         Comandos
                       </button>
                     </div>
@@ -611,7 +613,7 @@ export default function App() {
                         placeholder="Motivo para conservar A"
                         aria-label="Motivo para aceptar la tolerancia"
                       />
-                      <button type="button" className="boton-primario" disabled={dentro.length === 0 || !motivoTolerancia.trim()} onClick={aceptarTolerancia}>
+                      <button type="button" className="boton-suave" disabled={dentro.length === 0 || !motivoTolerancia.trim()} onClick={aceptarTolerancia}>
                         Conservar A dentro de la tolerancia ({dentro.length})
                       </button>
                     </div>
@@ -621,12 +623,12 @@ export default function App() {
                       {valor !== null ? ` Valor estimado de las diferencias: ${valor}.` : ""}
                     </p>
                     <div className="controles">
-                      <button type="button" className="boton-primario" onClick={() => setBorradorActivo(true)} disabled={borradorActivo}>
+                      <button type="button" className="boton-suave" onClick={() => setBorradorActivo(true)} disabled={borradorActivo}>
                         Activar borrador en este navegador
                       </button>
                       <button
                         type="button"
-                        className="boton-primario"
+                        className="boton-suave"
                         onClick={() => {
                           borrarBorrador()
                           setBorradorActivo(false)
@@ -745,12 +747,6 @@ export default function App() {
                   const gen = ++generacion.current
                   void incorporar("B", ficheroB.nombre, texto, ficheroB.delimitador || null, ficheroB.mapeo, gen, ficheroB.codificacion)
                 }}
-              />
-              <AccionReconciliar
-                listo={listoParaCuadrar}
-                ocupado={ocupado}
-                hayFicheros={Boolean(ficheroA || ficheroB)}
-                onClick={() => void alReconciliar()}
               />
             </aside>
           </div>

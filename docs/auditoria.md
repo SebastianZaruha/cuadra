@@ -102,7 +102,7 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 
 ## Qué entró en este corte
 
-- La muestra de Ferretería La Cuadra se carga y se cuadra al abrir. Lleva la etiqueta «Datos de muestra» y el relato del API («Inventarios ficticios»). Si el API falla, se dice; no hay números inventados en el cliente.
+- La muestra de Ferretería La Cuadra se carga y se cuadra al abrir. El relato del API dice que son inventarios ficticios. Si el API falla, se dice; no hay números inventados en el cliente.
 - Resumen con barras de iguales, modificados, solo en A, solo en B y bloqueados. Los datos son `resumen`. La barra crece al entrar (~560 ms, escalonada). Con `prefers-reduced-motion: reduce` no hay animación.
 - Vidrio liso (`data-vl="desenfoque"`) en la barra, los dos ficheros, la acción de reconciliar, el resumen y el cierre. La tabla no es vidrio: es una superficie oscura, densa, con su propio texto.
 - Fondo `#0b0b0c` con una sola luz cálida muy baja, fuera de cuadro, y grano fino. Sin manchas de color ni animación. El acento de las acciones es el pino `#1f6b4a`. El vidrio sigue en desenfoque; el canto y la sombra larga se afinan en la pantalla, no en el módulo.

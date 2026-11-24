@@ -56,7 +56,7 @@ export function TablaCuadre({
         ))}
       </div>
       <div className="grid max-w-md gap-1.5">
-        <Label htmlFor={buscarId}>Buscar</Label>
+        <Label className="etiqueta" htmlFor={buscarId}>Buscar</Label>
         <Input
           id={buscarId}
           value={busqueda}
@@ -289,7 +289,7 @@ function Formulario({
         <p className="text-sm">{ayudaFila(fila)}</p>
       </details>
       <div className="grid gap-1.5">
-        <Label htmlFor={`${base}-decision`}>Decisión</Label>
+        <Label className="etiqueta" htmlFor={`${base}-decision`}>Decisión</Label>
         <select id={`${base}-decision`} className="campo" value={tipo} onChange={(evento) => setTipo(evento.target.value)}>
           <option value="">Elige qué hacer</option>
           {opciones.map((opcion) => (
@@ -302,7 +302,7 @@ function Formulario({
       </div>
       {tipo === "cantidad_manual" ? (
         <div className="grid gap-1.5">
-          <Label htmlFor={`${base}-cantidad`}>Cantidad manual</Label>
+          <Label className="etiqueta" htmlFor={`${base}-cantidad`}>Cantidad manual</Label>
           <Input
             id={`${base}-cantidad`}
             inputMode="decimal"
@@ -317,7 +317,7 @@ function Formulario({
         </div>
       ) : null}
       <div className="grid gap-1.5">
-        <Label htmlFor={`${base}-motivo`}>Motivo</Label>
+        <Label className="etiqueta" htmlFor={`${base}-motivo`}>Motivo</Label>
         <Input id={`${base}-motivo`} value={motivo} onChange={(evento) => setMotivo(evento.target.value)} required />
       </div>
       {local ? <p className="error text-sm">{local}</p> : null}
