@@ -4,8 +4,6 @@ Cuadra compara dos exportaciones de inventario en CSV y enseña qué cambió, qu
 
 ![Cuadra en escritorio](docs/capturas/escritorio-1440.png)
 
-![Cuadra en el móvil](docs/capturas/movil-390.png)
-
 ## Probarlo en treinta segundos
 
 Hace falta Node 22. Python 3.12 solo si quieres correr la referencia.
