@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 const raiz = fileURLToPath(new URL(".", import.meta.url));
 
@@ -17,12 +17,14 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 43123,
-    proxy: {
-      "/api": "http://127.0.0.1:43124",
-    },
+    fs: { allow: [path.resolve(raiz, "..")] },
   },
   preview: {
     host: "0.0.0.0",
     port: 43123,
+  },
+  test: {
+    environment: "node",
+    include: ["test/paridad.test.ts"],
   },
 });

@@ -1,3 +1,24 @@
+import demoA from "../../fixtures/demo/a.csv?raw"
+import demoB from "../../fixtures/demo/b.csv?raw"
+
+import {
+  ExportacionBloqueada,
+  MAX_BYTES,
+  MAX_COLUMNAS,
+  MAX_DECIMALES,
+  MAX_DESCRIPCION,
+  MAX_FILAS,
+  MAX_IDENTIFICADOR,
+  MAX_MOTIVO,
+  SCHEMA_VERSION,
+  abrirSesionLocal,
+  crearSesion,
+  exportarCuadre,
+  inspeccionar as inspeccionarLocal,
+  normalizarTexto,
+  reconciliar as reconciliarLocal,
+  serializarSesion,
+} from "./dominio/cuadra.ts"
 import type {
   DecisionEnviada,
   Delimitador,
@@ -22,29 +43,35 @@ export class ErrorCuadra extends Error {
   }
 }
 
-async function leerJson<T>(respuesta: Response): Promise<T> {
-  const cuerpo = (await respuesta.json()) as T & { errores?: ErrorValidacion[] }
-  if (!respuesta.ok && respuesta.status !== 409) {
-    const mensaje = cuerpo.errores?.[0]?.mensaje ?? `El servidor respondió ${respuesta.status}.`
-    throw new ErrorCuadra(mensaje, respuesta.status, cuerpo.errores ?? [])
-  }
-  return cuerpo
-}
+const RELATO =
+  "Depósito y tienda de Ferretería La Cuadra. Inventarios ficticios: no hay datos de un negocio real."
 
 export async function obtenerLimites(): Promise<Limites> {
-  const respuesta = await fetch("/api/limites")
-  if (!respuesta.ok) {
-    throw new ErrorCuadra("No se pudieron leer los límites.", respuesta.status)
+  return {
+    schema_version: SCHEMA_VERSION,
+    max_bytes: MAX_BYTES,
+    max_filas: MAX_FILAS,
+    max_columnas: MAX_COLUMNAS,
+    max_identificador: MAX_IDENTIFICADOR,
+    max_descripcion: MAX_DESCRIPCION,
+    max_motivo: MAX_MOTIVO,
+    max_decimales: MAX_DECIMALES,
   }
-  return (await respuesta.json()) as Limites
 }
 
 export async function obtenerDemo(): Promise<Demo> {
-  const respuesta = await fetch("/api/demo")
-  if (!respuesta.ok) {
-    throw new ErrorCuadra("No se pudo cargar la demostración.", respuesta.status)
+  const mapeo = { identificador: "sku", descripcion: "descripcion", cantidad: "cantidad" }
+  return {
+    nombre_a: "deposito.csv",
+    nombre_b: "tienda.csv",
+    csv_a: normalizarTexto(demoA),
+    csv_b: normalizarTexto(demoB),
+    delimitador_a: ",",
+    delimitador_b: ";",
+    mapeo_a: mapeo,
+    mapeo_b: mapeo,
+    relato: RELATO,
   }
-  return (await respuesta.json()) as Demo
 }
 
 export async function inspeccionar(
@@ -52,32 +79,7 @@ export async function inspeccionar(
   fichero: "A" | "B",
   delimitador: Delimitador | null,
 ): Promise<Inspeccion> {
-  const respuesta = await fetch("/api/inspeccionar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ csv, fichero, delimitador }),
-  })
-  return leerJson<Inspeccion>(respuesta)
-}
-
-function cuerpoCuadre(
-  a: FicheroUi,
-  b: FicheroUi,
-  decisiones: DecisionEnviada[],
-  extra: Record<string, unknown> = {},
-) {
-  return {
-    csv_a: a.texto,
-    csv_b: b.texto,
-    nombre_a: a.nombre,
-    nombre_b: b.nombre,
-    delimitador_a: a.delimitador || null,
-    delimitador_b: b.delimitador || null,
-    mapeo_a: a.mapeo,
-    mapeo_b: b.mapeo,
-    decisiones,
-    ...extra,
-  }
+  return inspeccionarLocal(csv, delimitador, fichero) as Inspeccion
 }
 
 export async function reconciliar(
@@ -85,12 +87,15 @@ export async function reconciliar(
   b: FicheroUi,
   decisiones: DecisionEnviada[],
 ): Promise<Resultado> {
-  const respuesta = await fetch("/api/reconciliar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cuerpoCuadre(a, b, decisiones)),
-  })
-  return leerJson<Resultado>(respuesta)
+  return reconciliarLocal(
+    a.texto,
+    b.texto,
+    a.mapeo,
+    b.mapeo,
+    a.delimitador || null,
+    b.delimitador || null,
+    decisiones,
+  ) as Resultado
 }
 
 export async function exportar(
@@ -99,16 +104,31 @@ export async function exportar(
   decisiones: DecisionEnviada[],
   modo: "completa" | "parcial",
 ): Promise<Exportacion> {
-  const respuesta = await fetch("/api/exportar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cuerpoCuadre(a, b, decisiones, { modo })),
-  })
-  if (respuesta.status === 409) {
-    const cuerpo = (await respuesta.json()) as { errores: ErrorValidacion[] }
-    throw new ErrorCuadra(cuerpo.errores[0]?.mensaje ?? "Exportación bloqueada.", 409, cuerpo.errores)
+  try {
+    return exportarCuadre(
+      a.texto,
+      b.texto,
+      a.mapeo,
+      b.mapeo,
+      a.delimitador || null,
+      b.delimitador || null,
+      decisiones,
+      modo,
+    )
+  } catch (error) {
+    if (error instanceof ExportacionBloqueada) {
+      throw new ErrorCuadra(error.message, 409, [
+        {
+          codigo: "exportacion_bloqueada",
+          mensaje: error.message,
+          fichero: null,
+          fila: null,
+          columna: null,
+        },
+      ])
+    }
+    throw error
   }
-  return leerJson<Exportacion>(respuesta)
 }
 
 export async function guardarSesion(
@@ -116,32 +136,47 @@ export async function guardarSesion(
   b: FicheroUi,
   decisiones: DecisionEnviada[],
 ): Promise<{ nombre: string; texto: string }> {
-  const respuesta = await fetch("/api/sesion", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cuerpoCuadre(a, b, decisiones)),
-  })
-  return leerJson<{ nombre: string; texto: string }>(respuesta)
+  const sesion = await crearSesion(
+    a.texto,
+    b.texto,
+    a.mapeo,
+    b.mapeo,
+    a.nombre,
+    b.nombre,
+    a.delimitador || null,
+    b.delimitador || null,
+    decisiones,
+  )
+  return { nombre: "cuadra-sesion.json", texto: serializarSesion(sesion) }
 }
 
-export async function abrirSesion(
-  sesion: unknown,
-  a: FicheroUi,
-  b: FicheroUi,
-): Promise<Resultado> {
-  const respuesta = await fetch("/api/sesion/abrir", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sesion, csv_a: a.texto, csv_b: b.texto }),
-  })
-  return leerJson<Resultado>(respuesta)
+export async function abrirSesion(sesion: unknown, a: FicheroUi, b: FicheroUi): Promise<Resultado> {
+  if (!sesion || typeof sesion !== "object" || Array.isArray(sesion)) {
+    return {
+      ok: false,
+      delimitador_a: null,
+      delimitador_b: null,
+      exportacion_completa_permitida: false,
+      resumen: null,
+      filas: [],
+      errores: [
+        {
+          codigo: "sesion_json",
+          mensaje: "La sesión no es JSON válido.",
+          fichero: null,
+          fila: null,
+          columna: null,
+        },
+      ],
+      errores_decision: [],
+    }
+  }
+  return (await abrirSesionLocal(sesion as Record<string, unknown>, a.texto, b.texto)) as Resultado
 }
 
 export async function leerArchivo(archivo: File, maxBytes: number): Promise<string> {
   if (archivo.size > maxBytes) {
-    throw new Error(
-      `«${archivo.name}» pesa ${archivo.size} bytes y el límite es ${maxBytes} bytes.`,
-    )
+    throw new Error(`«${archivo.name}» pesa ${archivo.size} bytes y el límite es ${maxBytes} bytes.`)
   }
   const bytes = await archivo.arrayBuffer()
   try {

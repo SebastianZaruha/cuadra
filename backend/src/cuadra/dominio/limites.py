@@ -1,8 +1,8 @@
 """Topes del corte vertical.
 
-Están repetidos en la respuesta de ``GET /api/limites`` para que la interfaz
-no duplique la cifra por su cuenta. 1 MiB por fichero deja margen bajo el
-tope de 4,5 MB del cuerpo de una función en Vercel cuando viajan A, B y la sesión.
+El navegador repite estas cifras en TypeScript. El API de Python sigue
+siendo el motor de referencia para pytest; el despliegue no publica ``/api``.
+1 MiB y 2.000 filas son el contrato, no un recorte silencioso.
 """
 
 SCHEMA_VERSION = 1

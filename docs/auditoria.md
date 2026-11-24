@@ -1,20 +1,27 @@
 # Auditoría de Cuadra
 
-Corte de noviembre de 2026. Cuadra compara dos CSV de inventario y enseña qué cambió, qué falta y qué no se puede emparejar. La clave es exacta. No adivina equivalencias y no sustituye a un ERP. Este documento es la auditoría de ese producto, la crítica de lo que se podría añadir, lo que entró en este corte y lo que queda fuera.
+Corte de noviembre de 2026. Cuadra compara dos CSV de inventario y enseña qué cambió, qué falta y qué no se puede emparejar. La clave es exacta. No adivina equivalencias y no sustituye a un ERP.
+
+## Estado actual
+
+El cuadre corre en el navegador. `frontend/src/dominio/cuadra.ts` porta lectura, cuadre, exportación, sesión y límites. Vitest compara cada `fixtures/*/esperado.json` y los CSV de la demo con el mismo resultado que pytest. El Python de `backend/` se queda como referencia y no se despliega: `.vercelignore` excluye `api/` y `vercel.json` ya no reescribe `/api`.
+
+La identidad visual es la de `main`: papel `#f3efe6`, pino `#1f6b4a`, cobre, tinta `#1c2430`, Fraunces e IBM Plex Sans. Lo único añadido es el vidrio liso en la barra, los paneles de fichero, el resumen, el cierre y la paleta. Sobre papel el humo es blanco translúcido y el texto es la tinta original. El blur, el canto de 1 px y la sombra `0 18px 50px` siguen siendo los del módulo.
 
 ## Cómo está hecho
 
 | Pieza | Dónde | Qué hace |
 | --- | --- | --- |
-| Reglas | `backend/src/cuadra/dominio` | Lee, valida, empareja, decide, exporta. No importa FastAPI ni React |
-| HTTP | `backend/src/cuadra/api` | Traduce JSON. No conserva archivos |
-| Contrato | `fixtures/` | CSV ficticios con el JSON esperado |
+| Reglas en el navegador | `frontend/src/dominio/cuadra.ts` | Lee, valida, empareja, decide, exporta y abre la sesión |
+| Referencia | `backend/src/cuadra/dominio` | La misma lógica en Python, para pytest. No importa React |
+| HTTP de referencia | `backend/src/cuadra/api` | Sigue en el repo. El despliegue no lo publica |
+| Contrato | `fixtures/` | CSV ficticios con el JSON esperado, compartido por pytest y Vitest |
 | Pantalla | `frontend/` | React 19, Vite, TypeScript, Tailwind 4 |
-| Recorrido | `e2e/tests/recorrido.spec.ts` | Un camino de punta a punta con Playwright |
+| Recorrido | `e2e/tests/recorrido.spec.ts` | Playwright contra la app, sin servidor |
 
 Los límites reales (1 MiB, 2 000 filas, 4 decimales, sesión versión 1) viven en el dominio y se repiten en la pantalla. La demostración es Ferretería La Cuadra: `deposito.csv` y `tienda.csv`, inventarios ficticios.
 
-El dominio ya resuelve solo las filas iguales (`cuadre.py`: una igual sin decisión cuenta como resuelta). Por eso la muestra abre con 5 pendientes y 3 resueltas, no con ocho decisiones en blanco.
+El dominio ya resuelve solo las filas iguales (una igual sin decisión cuenta como resuelta). Por eso la muestra abre con 5 pendientes y 3 resueltas, no con ocho decisiones en blanco.
 
 ## Hallazgos
 
@@ -38,19 +45,19 @@ La exportación completa bloqueada, la parcial marcada y la sesión que exige lo
 
 ### Diseño
 
-La base era honesta: Fraunces, IBM Plex Sans, verde pino y cobre sobre papel. También era una hoja de formulario. Poco contraste entre secciones, mucha ayuda repetida en cada fila, y en móvil una columna interminable.
+La base es la original: Fraunces, IBM Plex Sans, verde pino y cobre sobre papel `#f3efe6`. Un fondo oscuro y una paleta tipo sistema se probaron y se retiraron: el dueño quería ese papel, y el vidrio encima.
 
-El vidrio líquido pedido no se lee sobre ese papel. El blanco puro con humo al 6–8 % cae por debajo de un contraste usable si detrás hay crema (`#f3efe6` contra blanco está en torno a 1,15:1). La receta no se toca: se cambió el fondo.
+El vidrio del módulo trae texto blanco y humo negro. Sobre papel eso no se lee. No se tocó el blur ni el canto: se cambian `--vl-texto` a `#1c2430` y el humo a blanco translúcido. El foco visible sigue siendo el pino.
 
 ### Código
 
-Lo fuerte está en Python: fachada estable, mensajes propios, límites en un solo sitio, fixtures como oráculo. 61 tests de dominio y API.
+La referencia sigue en Python: fachada estable, mensajes propios, límites en un solo sitio, fixtures como oráculo. 61 tests de dominio y API. El puerto TypeScript se comprueba contra esos mismos fixtures.
 
-La pantalla era un solo estado en `App.tsx`. A este tamaño se entiende. No hacía falta un almacén nuevo.
+La pantalla es un solo estado en `App.tsx`. A este tamaño se entiende. No hace falta un almacén nuevo.
 
 Había kit de más: componentes shadcn sin uso (`card`, `select`, `textarea`, `separator`), la fuente Geist en `package.json` sin usarse, y tokens de modo oscuro que nadie activaba. Borrarlos en este corte no enseña el producto y sí puede romper el tema.
 
-Cada decisión reenvía los dos CSV. Con el límite de 1 MiB cabe en el cuerpo de la función y mantiene la API sin estado. No es un cuello de botella dentro de las reglas publicadas.
+Cada decisión vuelve a correr el dominio en el navegador, con los CSV que ya están en memoria. No hay cuerpo de petición.
 
 ### Rendimiento
 
@@ -104,8 +111,8 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 
 - La muestra de Ferretería La Cuadra se carga y se cuadra al abrir. El relato del API dice que son inventarios ficticios. Si el API falla, se dice; no hay números inventados en el cliente.
 - Resumen con barras de iguales, modificados, solo en A, solo en B y bloqueados. Los datos son `resumen`. La barra crece al entrar (~560 ms, escalonada). Con `prefers-reduced-motion: reduce` no hay animación.
-- Vidrio liso (`data-vl="desenfoque"`) en la barra, los dos ficheros, la acción de reconciliar, el resumen y el cierre. La tabla no es vidrio: es una superficie oscura, densa, con su propio texto.
-- Fondo `#0b0b0c` con una sola luz cálida muy baja, fuera de cuadro, y grano fino. Sin manchas de color ni animación. El acento de las acciones es el pino `#1f6b4a`. El vidrio sigue en desenfoque; el canto y la sombra larga se afinan en la pantalla, no en el módulo.
+- Vidrio liso (`data-vl="desenfoque"`) en la barra, los dos ficheros, el resumen, el cierre y la paleta. La tabla no es vidrio: es la tabla original sobre papel.
+- Fondo papel `#f3efe6` con el radial pino del diseño original y un grano muy bajo, sin manchas de color. El acento es el pino `#1f6b4a`. El blur, el canto y la sombra `0 18px 50px` no se reescriben.
 - En escritorio la barra es pegajosa y el contenido pasa por debajo; la columna de ficheros también se queda. En móvil (por debajo de 1100 px) la barra no se pega, para no tapar la fila que se está leyendo. El resumen va antes que los ficheros.
 - Entrada de las piezas: opacidad y 8 px, 200 ms, escalonada. Se apaga con movimiento reducido.
 - «Quitar fichero A/B». Al quitar, el cuadre y las descargas se tiran.
@@ -113,16 +120,16 @@ Quitar un fichero y mostrar «B − A» no son otro producto: deshacen un callej
 - Las iguales sin decisión dicen «Entra sola». Si la cantidad difiere, la celda B muestra la diferencia B − A (por ejemplo −2 en LC-110).
 - La ayuda larga de cada fila está en «Cómo decidir», cerrada. La regla sigue en la página.
 - Espera anunciada como «Trabajando…», no como «Leyendo ficheros…».
-- Foco crema en la superficie y blanco dentro del vidrio. Controles de al menos 44 px. Filtros en una fila con desplazamiento horizontal en pantallas estrechas.
+- Foco pino, el del diseño original, también dentro del vidrio.
 - El texto «Elegido por ti» pasó a «Elegido»: el delimitador puede venir de la muestra, no de la persona.
 - Deshacer y rehacer decisiones, paleta de comandos, informe imprimible y exportación de diferencias en el navegador.
 - Borrador y plantillas de columnas solo si se activan, en `localStorage`.
 - Excel a CSV y Latin-1 en el cliente, con aviso. La coma decimal solo si se pulsa el botón.
 - Tolerancia de cantidad explícita, con motivo, sin tocar la clave. El coste, si se mapea, solo estima un valor.
 - Errores de decisión con `identificador` propio.
-- Páginas `/privacidad`, `/aviso-legal` y `/cookies` (y `/en/…`) con el placeholder «Texto legal pendiente de revisión». Sin analítica: el banner está en el código y no se muestra.
+- Rutas `/legal` y `/legal-en` con el placeholder «Texto legal pendiente de revisión». GA4 solo si existe `VITE_GA_ID` con forma `G-…` y la persona acepta. Sin ese valor no hay banner ni script.
 
-Quedan fuera, con motivo: cuadre de 50 000 filas (el tope real es 2 000 filas y 1 MiB, y cada decisión reenvía los dos CSV bajo el límite de 4,5 MB de Vercel); cuadre offline (las reglas están solo en Python); tolerancia de precio dentro del dominio (no hay columna de precio en el contrato).
+Quedan fuera, con motivo: cuadre de 50 000 filas (el tope publicado sigue siendo 2 000 filas y 1 MiB; subirlo cambia el producto, no solo el transporte); tolerancia de precio dentro del dominio (el coste de la pantalla es una estimación); los textos legales definitivos.
 
 ## Qué se rechazó, y por qué
 
@@ -133,10 +140,9 @@ Quedan fuera, con motivo: cuadre de 50 000 filas (el tope real es 2 000 filas y 
 | Cuentas, colaboración, guardar en el servidor | Rompe la API sin estado y pide despliegue |
 | Borrador automático | Haría falso «no guarda los ficheros». El que hay es opt-in y se puede borrar |
 | Decisiones en lote | El motivo es por fila; el lote invita a resolver sin mirar |
-| Tema claro o interruptor | El blanco del vidrio no se lee sobre papel; la receta no se negocia |
+| Interruptor claro/oscuro | El papel es la identidad. El vidrio se adapta con humo blanco y tinta oscura, sin segundo tema |
 | Filtro SVG de canto | Pedido explícito el desenfoque liso, igual en los tres motores |
-| Vitest en este corte | No se ve; el recorrido e2e cubre lo que se enseña |
-| Reescritura optimista | Duplica reglas que ya están en Python |
+| Reescritura optimista distinta del dominio | El cliente ahora es el dominio. Anticipar otra vez duplicaría las reglas |
 | Métricas, clientes o testimonios inventados | No hay esos datos |
 
 ## Hoja de ruta
@@ -144,11 +150,10 @@ Quedan fuera, con motivo: cuadre de 50 000 filas (el tope real es 2 000 filas y 
 Ordenado por lo que más cambiaría el uso real, no por lo más vistoso.
 
 1. **Sugerir columnas sin exigir mayúsculas ni acentos.** Solo en la pantalla. La comparación del cuadre sigue siendo exacta.
-2. **Más de 2 000 filas.** Hoy el tope es 2 000 filas y 1 MiB por fichero. Cada decisión reenvía los dos CSV y Vercel limita el cuerpo a 4,5 MB. Subir a 50 000 filas pide otro transporte, no un botón.
-3. **Cuadre sin API.** Las reglas están solo en Python. El service worker cachea el cascarón; sin red no hay un cuadre nuevo.
-4. **Tolerancia de precio en el dominio.** El coste de la pantalla es una estimación. Meter el precio en el emparejamiento cambiaría el contrato.
-5. **Textos legales definitivos.** Las rutas existen. El asesor aún no ha entregado el texto.
-6. **Podar** Geist y componentes de UI que nadie monta.
+2. **Más de 2 000 filas.** El tope sigue siendo 2 000 filas y 1 MiB por fichero, ahora en el navegador. Subir a 50 000 filas es un cambio de producto y de memoria, no un botón.
+3. **Tolerancia de precio en el dominio.** El coste de la pantalla es una estimación. Meter el precio en el emparejamiento cambiaría el contrato.
+4. **Textos legales definitivos.** `/legal` y `/legal-en` existen. El asesor aún no ha entregado el texto.
+5. **Podar** Geist y componentes de UI que nadie monta.
 
 ## Vidrio
 
@@ -157,11 +162,9 @@ El módulo está copiado en `frontend/src/comun/estilo/vidrio-liquido/` (CSS, `h
 Comprobado en Chromium, en un panel real:
 
 - `data-vl` es `desenfoque`. No hay filtro SVG en el documento y no hay `mix-blend-mode` en los hijos.
-- Fondo del panel transparente, texto blanco, radio 30 px.
-- Sombra interior `rgb(170,170,170)` con alfa 0,45 en el canto, 0,65 arriba y 0,3 abajo, más `0 18px 50px rgba(0,0,0,.18)`.
-- `backdrop-filter: blur(8.64px)` a 1440 px de ancho, dentro de `clamp(6px, 0.6vw, 12px)`. El CSS incluye también `-webkit-backdrop-filter`.
-- El texto largo va en tarjetas al 6 % (`--vl-humo-texto`), radio 16 px y 14 px de separación. Los botones usan la clase `control`: sin borde, humo 8 %, hover +8 % de blanco, activo (`aria-pressed`) +20 % y peso 600.
-- `prefers-reduced-transparency` sube el blur a 24 px y el humo a 50 % (está en el CSS del módulo; no se pudo emular con Playwright en esta máquina).
-- Sin `backdrop-filter`, el propio CSS pone `rgba(0,0,0,.62)`. Se forzó esa caída en una captura: el texto blanco sigue leyéndose. Safari y Firefox modernos pintan el mismo desenfoque; no reciben un canto doblado distinto porque ese camino está apagado. En un motor viejo sin `backdrop-filter` verían el panel sólido.
-
-El esquema claro del módulo (`.app[data-scheme='light']`) no se activa. Sus humos son los mismos 8 % y 6 %. Activarlo no arreglaría un fondo de papel, así que el fondo se dejó oscuro a propósito.
+- Fondo del panel transparente, texto `#1c2430`, radio 0,9 rem como las tarjetas originales.
+- Sombra interior `rgb(170,170,170)` con alfa 0,45 en el canto, 0,65 arriba y 0,3 abajo, más `0 18px 50px rgba(0,0,0,.18)`. Esas dos las pone el módulo; la pantalla no las sustituye.
+- `backdrop-filter: blur(clamp(6px, 0.6vw, 12px))` y el prefijo `-webkit-`.
+- Humo blanco translúcido (`--vl-humo` y `--vl-humo-texto`) para que la tinta oscura cumpla AA sobre papel.
+- `prefers-reduced-transparency` sube el blur a 24 px y el humo blanco, no el negro del módulo, porque el texto ya no es blanco.
+- Sin `backdrop-filter`, el panel cae a papel sólido `#fbf8f3` al 96 %. El `rgba(0,0,0,.62)` del módulo servía para texto blanco; con tinta oscura dejaría el texto ilegible. Safari y Firefox modernos pintan el mismo desenfoque. El canto doblado no se enciende.

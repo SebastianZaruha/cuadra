@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -50,27 +51,26 @@ export function Cierre({
         </p>
       </div>
       <div className="controles mt-4">
-        <button
+        <Button
           type="button"
-          className="boton-primario"
           disabled={!completaPermitida || ocupado}
           aria-describedby="aviso-exportacion"
           onClick={() => onExportar("completa")}
         >
           Exportar inventario completo
-        </button>
-        <button type="button" className="control" disabled={ocupado} onClick={() => onExportar("parcial")}>
+        </Button>
+        <Button type="button" variant="outline" disabled={ocupado} onClick={() => onExportar("parcial")}>
           Exportar parcial
-        </button>
-        <button type="button" className="control" disabled={ocupado} onClick={onGuardar}>
+        </Button>
+        <Button type="button" variant="secondary" disabled={ocupado} onClick={onGuardar}>
           Guardar sesión
-        </button>
-        <button type="button" className="control" onClick={onImprimir}>
+        </Button>
+        <Button type="button" variant="outline" onClick={onImprimir}>
           Imprimir informe
-        </button>
-        <button type="button" className="control" onClick={onDiferencias}>
+        </Button>
+        <Button type="button" variant="outline" onClick={onDiferencias}>
           Descargar diferencias
-        </button>
+        </Button>
       </div>
       {enlaces.length > 0 ? (
         <ul className="mt-3 grid gap-1">
@@ -86,7 +86,7 @@ export function Cierre({
       <div className="vl-apartados mt-4">
         <div className="vl-apartado">
           <div className="archivo">
-            <Label htmlFor="abrir-sesion" className="control">
+            <Label htmlFor="abrir-sesion" className="boton-papel">
               Abrir una sesión guardada
             </Label>
             <Input

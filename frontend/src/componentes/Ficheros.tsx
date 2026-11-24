@@ -65,7 +65,7 @@ export function PanelFichero({
       </details>
       <div className="fila-archivo">
         <div className="archivo">
-          <label htmlFor={lado === "A" ? "cuadra-archivo-a" : "cuadra-archivo-b"} className="control">
+          <label htmlFor={lado === "A" ? "cuadra-archivo-a" : "cuadra-archivo-b"} className="boton-papel">
             Elegir CSV
           </label>
           <Input
@@ -82,7 +82,7 @@ export function PanelFichero({
           />
         </div>
         {fichero ? (
-          <button type="button" className="control" onClick={onQuitar} disabled={ocupado}>
+          <button type="button" className="boton-papel" onClick={onQuitar} disabled={ocupado}>
             Quitar fichero {lado}
           </button>
         ) : null}
@@ -175,10 +175,10 @@ export function PanelFichero({
                 <p className="aviso-suave">No era UTF-8. Se leyó como Windows-1252 en este navegador.</p>
               ) : null}
               {fichero.codificacion === "excel" ? (
-                <p className="aviso-suave">El Excel se convirtió a CSV en este navegador. El servidor no lo guarda.</p>
+                <p className="aviso-suave">El Excel se convirtió a CSV en este navegador. No sale del equipo.</p>
               ) : null}
               {fichero.delimitador && sospechaComaDecimal(fichero.texto, fichero.delimitador, fichero.mapeo.cantidad) ? (
-                <button type="button" className="control" onClick={onComaDecimal}>
+                <button type="button" className="boton-papel" onClick={onComaDecimal}>
                   Convertir comas decimales de la cantidad
                 </button>
               ) : null}
@@ -192,7 +192,7 @@ export function PanelFichero({
                 />
                 <button
                   type="button"
-                  className="control"
+                  className="boton-papel"
                   disabled={!nombrePlantilla.trim()}
                   onClick={() => {
                     onGuardarPlantilla(nombrePlantilla.trim())

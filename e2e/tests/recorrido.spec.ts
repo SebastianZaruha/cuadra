@@ -26,11 +26,7 @@ test("recorre la demostración, exporta y reabre la sesión", async ({ page }) =
   await expect(page.getByRole("button", { name: "Comparar ficheros" })).toBeEnabled()
   await expect(page.getByText("Pendientes: 5.")).toBeVisible()
 
-  const recarga = page.waitForResponse(
-    (respuesta) => respuesta.url().includes("/api/reconciliar") && respuesta.request().method() === "POST",
-  )
   await page.getByRole("button", { name: "Probar con ejemplo" }).click()
-  await recarga
   await expect(page.getByText("Pendientes: 5.")).toBeVisible()
   await expect(filaDe(page, "LC-110")).toBeVisible()
   await expect(filaDe(page, "LC-170")).toBeVisible()

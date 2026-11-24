@@ -277,7 +277,7 @@ export default function App() {
 
   async function alArchivo(lado: "A" | "B", archivo: File) {
     if (!limites) {
-      setAviso("Todavía no están los límites del servidor. Reintenta en un momento.")
+      setAviso("Todavía no están los límites. Reintenta en un momento.")
       return
     }
     try {
@@ -546,7 +546,7 @@ export default function App() {
         <main id="contenido" aria-busy={ocupado} className="grid gap-4">
           {falloLimites ? (
             <Alert variant="destructive" className="alerta-clara">
-              <AlertTitle>Sin conexión con el servidor</AlertTitle>
+              <AlertTitle>No se pudieron leer los límites</AlertTitle>
               <AlertDescription>
                 {falloLimites}
                 <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => void cargarLimites()}>
@@ -585,13 +585,13 @@ export default function App() {
                 <>
                   <section className="superficie herramientas">
                     <div className="controles">
-                      <button type="button" className="boton-suave" onClick={alDeshacer} disabled={pila.pasado.length === 0}>
+                      <button type="button" className="boton-papel" onClick={alDeshacer} disabled={pila.pasado.length === 0}>
                         Deshacer
                       </button>
-                      <button type="button" className="boton-suave" onClick={alRehacer} disabled={pila.futuro.length === 0}>
+                      <button type="button" className="boton-papel" onClick={alRehacer} disabled={pila.futuro.length === 0}>
                         Rehacer
                       </button>
-                      <button type="button" className="boton-suave" onClick={() => setPaletaAbierta(true)}>
+                      <button type="button" className="boton-papel" onClick={() => setPaletaAbierta(true)}>
                         Comandos
                       </button>
                     </div>
@@ -613,7 +613,7 @@ export default function App() {
                         placeholder="Motivo para conservar A"
                         aria-label="Motivo para aceptar la tolerancia"
                       />
-                      <button type="button" className="boton-suave" disabled={dentro.length === 0 || !motivoTolerancia.trim()} onClick={aceptarTolerancia}>
+                      <button type="button" className="boton-papel" disabled={dentro.length === 0 || !motivoTolerancia.trim()} onClick={aceptarTolerancia}>
                         Conservar A dentro de la tolerancia ({dentro.length})
                       </button>
                     </div>
@@ -623,12 +623,12 @@ export default function App() {
                       {valor !== null ? ` Valor estimado de las diferencias: ${valor}.` : ""}
                     </p>
                     <div className="controles">
-                      <button type="button" className="boton-suave" onClick={() => setBorradorActivo(true)} disabled={borradorActivo}>
+                      <button type="button" className="boton-papel" onClick={() => setBorradorActivo(true)} disabled={borradorActivo}>
                         Activar borrador en este navegador
                       </button>
                       <button
                         type="button"
-                        className="boton-suave"
+                        className="boton-papel"
                         onClick={() => {
                           borrarBorrador()
                           setBorradorActivo(false)
@@ -640,7 +640,7 @@ export default function App() {
                       </button>
                     </div>
                     {borradorActivo ? (
-                      <p role="status">Borrador local activo. Los CSV no salen de este navegador y el servidor no los guarda.</p>
+                      <p role="status">Borrador local activo. Los CSV no salen de este navegador.</p>
                     ) : null}
                   </section>
                   <TablaCuadre
@@ -753,14 +753,13 @@ export default function App() {
         </main>
         <footer className="pie">
           <p>
-            Cuadra no guarda los ficheros en el servidor. Si cierras la pestaña sin descargar la sesión ni activar el
-            borrador, el cuadre se pierde. La clave se compara tal cual. La coma decimal solo se convierte si lo pides.
+            El cuadre ocurre en este navegador: los ficheros no se envían a ningún servidor. Si cierras la pestaña sin
+            descargar la sesión ni activar el borrador, el cuadre se pierde. La clave se compara tal cual. La coma
+            decimal solo se convierte si lo pides.
           </p>
           <nav className="pie-nav" aria-label="Información legal">
-            <a href="/privacidad">Privacidad</a>
-            <a href="/aviso-legal">Aviso legal</a>
-            <a href="/cookies">Cookies</a>
-            <a href="/en/privacidad">English</a>
+            <a href="/legal">Información legal</a>
+            <a href="/legal-en">Legal notice</a>
           </nav>
         </footer>
       </div>

@@ -1,14 +1,14 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
-import { MEDICION_GA4 } from "../analitica.ts"
+import { Button } from "@/components/ui/button"
+
+import { disableGoogleAnalytics, enableGoogleAnalytics, gaMeasurementId } from "../analitica.ts"
 
 const CLAVE = "cuadra-analitica"
 
-/**
- * Preparado como en Hourglass: aceptar o rechazar. No se monta mientras
- * MEDICION_GA4 esté vacío, así que hoy no pide nada ni carga analítica.
- */
+/** El banner solo existe con un Measurement ID real. El script entra al aceptar. */
 export function BannerAnalitica() {
+  const id = gaMeasurementId()
   const [eleccion, setEleccion] = useState<string | null>(() => {
     try {
       return localStorage.getItem(CLAVE)
@@ -16,7 +16,12 @@ export function BannerAnalitica() {
       return null
     }
   })
-  if (eleccion) return null
+  useEffect(() => {
+    if (!id) return
+    if (eleccion === "aceptada") enableGoogleAnalytics(id)
+    if (eleccion === "rechazada") disableGoogleAnalytics(id)
+  }, [eleccion, id])
+  if (!id || eleccion) return null
   function elegir(valor: "aceptada" | "rechazada") {
     try {
       localStorage.setItem(CLAVE, valor)
@@ -24,24 +29,18 @@ export function BannerAnalitica() {
       /* el navegador puede bloquear el almacenamiento */
     }
     setEleccion(valor)
-    if (valor === "aceptada" && MEDICION_GA4) {
-      const script = document.createElement("script")
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${MEDICION_GA4}`
-      script.async = true
-      document.head.append(script)
-    }
   }
   return (
     <div className="banner-analitica" role="dialog" aria-labelledby="titulo-analitica">
       <p id="titulo-analitica">Cookies de medición</p>
       <p>Texto legal pendiente de revisión</p>
       <div className="controles">
-        <button type="button" className="boton-primario" onClick={() => elegir("aceptada")}>
+        <Button type="button" onClick={() => elegir("aceptada")}>
           Aceptar
-        </button>
-        <button type="button" className="control" onClick={() => elegir("rechazada")}>
+        </Button>
+        <Button type="button" variant="outline" onClick={() => elegir("rechazada")}>
           Rechazar
-        </button>
+        </Button>
       </div>
     </div>
   )
