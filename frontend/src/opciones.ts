@@ -90,3 +90,13 @@ export function decisionesDesdeFilas(filas: Fila[]): DecisionEnviada[] {
 export function sugerirColumna(columnas: string[], candidatos: string[]): string {
   return candidatos.find((candidato) => columnas.includes(candidato)) ?? ""
 }
+
+/** Diferencia B − A de dos cantidades canónicas. Null si no son números o coinciden. */
+export function diferenciaCantidad(cantidadA: string, cantidadB: string): string | null {
+  if (!/^-?\d+(\.\d+)?$/.test(cantidadA) || !/^-?\d+(\.\d+)?$/.test(cantidadB)) return null
+  const delta = Math.round((Number(cantidadB) - Number(cantidadA)) * 10000) / 10000
+  if (!Number.isFinite(delta) || delta === 0) return null
+  const absoluto = Math.abs(delta)
+  const texto = Number.isInteger(absoluto) ? String(absoluto) : absoluto.toFixed(4).replace(/\.?0+$/, "")
+  return `${delta > 0 ? "+" : "−"}${texto}`
+}

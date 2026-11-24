@@ -3,6 +3,7 @@
   "buildCommand": "npm ci --prefix frontend && npm run build --prefix frontend",
   "outputDirectory": "frontend/dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" }
+    { "source": "/legal", "destination": "/index.html" },
+    { "source": "/legal-en", "destination": "/index.html" }
   ]
 }

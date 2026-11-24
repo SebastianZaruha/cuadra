@@ -1,18 +1,29 @@
-import { useId } from "react"
+import { useId, useState } from "react"
 
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+import { usePanelVidrio } from "../comun/estilo/usePanelVidrio.ts"
+import { textosDe } from "../textosUi.ts"
+import { sospechaComaDecimal } from "../csvLocal.ts"
 import type { Delimitador, FicheroUi, Mapeo } from "../tipos.ts"
 
 type Props = {
   lado: "A" | "B"
   fichero: FicheroUi | null
   maxBytes: number
+  ocupado: boolean
+  cargando: boolean
   onArchivo: (archivo: File) => void
+  onQuitar: () => void
   onDelimitador: (delimitador: Delimitador) => void
   onMapeo: (campo: keyof Mapeo, columna: string) => void
+  coste: string
+  onCoste: (columna: string) => void
+  plantillas: { nombre: string }[]
+  onGuardarPlantilla: (nombre: string) => void
+  onAplicarPlantilla: (nombre: string) => void
+  onComaDecimal: () => void
 }
 
 const CAMPOS: { campo: keyof Mapeo; etiqueta: string }[] = [
@@ -25,59 +36,87 @@ export function PanelFichero({
   lado,
   fichero,
   maxBytes,
+  ocupado,
+  cargando,
   onArchivo,
+  onQuitar,
   onDelimitador,
   onMapeo,
+  coste,
+  onCoste,
+  plantillas,
+  onGuardarPlantilla,
+  onAplicarPlantilla,
+  onComaDecimal,
 }: Props) {
+  const ref = usePanelVidrio<HTMLElement>()
   const base = useId()
+  const [nombrePlantilla, setNombrePlantilla] = useState("")
   const titulo = lado === "A" ? "Fichero A" : "Fichero B"
+  const retraso = lado === "A" ? "entrada entrada-2" : "entrada entrada-3"
+  const t = textosDe("es")
   return (
-    <section className="rounded-xl bg-card p-4 ring-1 ring-foreground/10" aria-labelledby={`${base}-titulo`}>
-      <h2 id={`${base}-titulo`} className="font-serif text-xl">
+    <section ref={ref} className={`vidrio-liquido panel-vidrio ${retraso}`} aria-labelledby={`${base}-titulo`}>
+      <h2 id={`${base}-titulo`} className="vl-humo titulo-fichero">
         {titulo}
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        UTF-8, hasta {maxBytes.toLocaleString("es")} bytes. La clave se compara tal cual, después de recortar espacios.
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <Label
-          htmlFor={`${base}-archivo`}
-          className="w-fit cursor-pointer rounded-lg border border-input bg-background px-3 py-2"
-        >
-          Elegir CSV
-        </Label>
-        <Input
-          id={`${base}-archivo`}
-          className="sr-only"
-          type="file"
-          accept=".csv,text/csv,text/plain"
-          onChange={(evento) => {
-            const archivo = evento.target.files?.[0]
-            if (archivo) onArchivo(archivo)
-            evento.target.value = ""
-          }}
-        />
-        <span className="text-sm text-muted-foreground">
-          {fichero ? fichero.nombre : "Ningún archivo elegido"}
-        </span>
+      <p className="subtitulo">CSV o Excel, hasta {Math.round(maxBytes / (1024 * 1024))} MB.</p>
+      <details className="detalles">
+        <summary>Detalles del fichero</summary>
+        <p>Si no es UTF-8 se lee como Latin-1 y se avisa. La clave se compara tal cual, solo se quitan los espacios de los extremos.</p>
+      </details>
+      <div className="fila-archivo">
+        <div className="archivo">
+          <label htmlFor={lado === "A" ? "cuadra-archivo-a" : "cuadra-archivo-b"} className="boton-papel">
+            Elegir CSV
+          </label>
+          <Input
+            id={lado === "A" ? "cuadra-archivo-a" : "cuadra-archivo-b"}
+            className="sr-only"
+            type="file"
+            accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain"
+            disabled={ocupado}
+            onChange={(evento) => {
+              const archivo = evento.target.files?.[0]
+              if (archivo) onArchivo(archivo)
+              evento.target.value = ""
+            }}
+          />
+        </div>
+        {fichero ? (
+          <button type="button" className="boton-papel" onClick={onQuitar} disabled={ocupado}>
+            Quitar fichero {lado}
+          </button>
+        ) : null}
       </div>
+      <p className="aviso-suave">
+        {t.avisoFicheros} <a href={t.avisoFicherosHref}>{t.avisoFicherosMas}</a>
+      </p>
+      <p className="vl-humo nombre-fichero">
+        {fichero ? (
+          <>
+            <span className="font-medium">{fichero.nombre}</span>
+            <span> · {fichero.filasDatos} filas de datos</span>
+          </>
+        ) : cargando ? (
+          "Cargando la muestra…"
+        ) : (
+          `Todavía no hay fichero ${lado}.`
+        )}
+      </p>
       {fichero ? (
         <div className="mt-4 grid gap-4">
-          <p className="text-sm">
-            <span className="font-medium">{fichero.nombre}</span>
-            <span className="text-muted-foreground"> · {fichero.filasDatos} filas de datos</span>
-          </p>
           <fieldset className="grid gap-2">
             <legend className="text-sm font-medium">Delimitador</legend>
-            <p className="text-sm text-muted-foreground">
+            <p className="aviso-suave">
               {fichero.origenDelimitador === "detectado"
-                ? "Detectado en la cabecera. Cámbialo si el fichero usa el otro."
+                ? "Lo leímos en la cabecera. Cámbialo si hace falta."
                 : fichero.origenDelimitador === "elegido"
-                  ? "Elegido por ti. Cuadra no cambia esta elección en silencio."
-                  : "Hay coma y punto y coma en la cabecera. Elige uno para continuar."}
+                  ? "Usaremos el separador que ves marcado."
+                  : "Hay coma y punto y coma. Elige uno."}
             </p>
-            <div className="flex flex-wrap gap-4">
-              <label className="flex items-center gap-2 text-sm">
+            <div className="fila-radios">
+              <label className="opcion-radio">
                 <input
                   type="radio"
                   name={`${base}-delimitador`}
@@ -87,7 +126,7 @@ export function PanelFichero({
                 />
                 Coma
               </label>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="opcion-radio">
                 <input
                   type="radio"
                   name={`${base}-delimitador`}
@@ -100,7 +139,7 @@ export function PanelFichero({
             </div>
           </fieldset>
           {fichero.errores.length > 0 ? (
-            <ul className="grid gap-1 text-sm text-destructive">
+            <ul className="grid gap-1 text-sm error">
               {fichero.errores.map((error) => (
                 <li key={error.codigo + error.mensaje}>{error.mensaje}</li>
               ))}
@@ -110,7 +149,7 @@ export function PanelFichero({
             <div className="grid gap-3">
               {CAMPOS.map(({ campo, etiqueta }) => (
                 <div key={campo} className="grid gap-1.5">
-                  <Label htmlFor={`${base}-${campo}`}>{etiqueta}</Label>
+                  <Label className="etiqueta" htmlFor={`${base}-${campo}`}>{etiqueta}</Label>
                   <select
                     id={`${base}-${campo}`}
                     className="campo"
@@ -126,14 +165,69 @@ export function PanelFichero({
                   </select>
                 </div>
               ))}
+              <div className="grid gap-1.5">
+                <Label className="etiqueta" htmlFor={`${base}-coste`}>Coste, si quieres valorar las diferencias</Label>
+                <select id={`${base}-coste`} className="campo" value={coste} onChange={(evento) => onCoste(evento.target.value)}>
+                  <option value="">Sin columna de coste</option>
+                  {fichero.columnas.map((columna) => (
+                    <option key={columna} value={columna}>
+                      {columna}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {fichero.codificacion === "windows-1252" ? (
+                <p className="aviso-suave">No era UTF-8. Se leyó como Windows-1252 en este navegador.</p>
+              ) : null}
+              {fichero.codificacion === "excel" ? (
+                <p className="aviso-suave">El Excel se convirtió a CSV en este navegador. No sale del equipo.</p>
+              ) : null}
+              {fichero.delimitador && sospechaComaDecimal(fichero.texto, fichero.delimitador, fichero.mapeo.cantidad) ? (
+                <button type="button" className="boton-papel" onClick={onComaDecimal}>
+                  Convertir comas decimales de la cantidad
+                </button>
+              ) : null}
+              <div className="controles">
+                <input
+                  className="campo"
+                  value={nombrePlantilla}
+                  onChange={(evento) => setNombrePlantilla(evento.target.value)}
+                  placeholder="Nombre de plantilla"
+                  aria-label={`Nombre de plantilla del fichero ${lado}`}
+                />
+                <button
+                  type="button"
+                  className="boton-papel"
+                  disabled={!nombrePlantilla.trim()}
+                  onClick={() => {
+                    onGuardarPlantilla(nombrePlantilla.trim())
+                    setNombrePlantilla("")
+                  }}
+                >
+                  Guardar plantilla aquí
+                </button>
+                {plantillas.length > 0 ? (
+                  <select className="campo" aria-label={`Aplicar plantilla al fichero ${lado}`} defaultValue="" onChange={(evento) => {
+                    if (evento.target.value) onAplicarPlantilla(evento.target.value)
+                    evento.target.value = ""
+                  }}>
+                    <option value="">Aplicar plantilla</option>
+                    {plantillas.map((plantilla) => (
+                      <option key={plantilla.nombre} value={plantilla.nombre}>
+                        {plantilla.nombre}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
               {fichero.muestra.length > 0 ? (
                 <div className="overflow-x-auto text-sm">
-                  <p className="mb-1 text-muted-foreground">Primeras filas, sin interpretar todavía.</p>
-                  <table className="w-full border-collapse">
+                  <p className="mb-1">Primeras filas, sin interpretar todavía.</p>
+                  <table className="tabla-muestra">
                     <thead>
                       <tr>
                         {fichero.columnas.map((columna) => (
-                          <th key={columna} className="border-b border-border px-2 py-1 text-left font-medium">
+                          <th key={columna} scope="col">
                             {columna}
                           </th>
                         ))}
@@ -143,9 +237,7 @@ export function PanelFichero({
                       {fichero.muestra.map((fila, indice) => (
                         <tr key={indice}>
                           {fichero.columnas.map((columna) => (
-                            <td key={columna} className="border-b border-border px-2 py-1">
-                              {fila[columna]}
-                            </td>
+                            <td key={columna}>{fila[columna]}</td>
                           ))}
                         </tr>
                       ))}
@@ -156,17 +248,31 @@ export function PanelFichero({
             </div>
           ) : null}
         </div>
-      ) : (
-        <p className="mt-4 text-sm text-muted-foreground">Todavía no hay fichero {lado}.</p>
-      )}
+      ) : null}
     </section>
   )
 }
 
-export function BotonDemo({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+export function AccionReconciliar({
+  listo,
+  ocupado,
+  hayFicheros,
+  onClick,
+}: {
+  listo: boolean
+  ocupado: boolean
+  hayFicheros: boolean
+  onClick: () => void
+}) {
+  const ref = usePanelVidrio<HTMLDivElement>()
   return (
-    <Button type="button" variant="secondary" onClick={onClick} disabled={disabled}>
-      Cargar demostración
-    </Button>
+    <div ref={ref} className="vidrio-liquido panel-vidrio entrada entrada-4 accion-cuadrar">
+      <button type="button" className="boton-primario" disabled={!listo || ocupado} onClick={onClick}>
+        Comparar ficheros
+      </button>
+      {!ocupado && hayFicheros && !listo ? (
+        <p className="vl-humo aviso-suave">Elige el delimitador y las tres columnas en los dos ficheros para reconciliar.</p>
+      ) : null}
+    </div>
   )
 }

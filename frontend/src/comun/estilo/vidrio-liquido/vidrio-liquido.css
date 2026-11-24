@@ -1,0 +1,153 @@
+/*
+  Vidrio liso: solo pinta el FONDO del elemento.
+  No toca position, tamaño, transform, filter ni opacity (la animación de la hoja es tuya).
+
+  El hook pone data-vl en el elemento. Las hojas van todas con data-vl="desenfoque"
+  (hoja.ts): el mismo vidrio en Chromium, Safari y Firefox.
+    data-vl="refraccion" → Chromium con el filtro SVG del canto (no lo usan las hojas)
+    data-vl="desenfoque" → desenfoque + filo de luz
+    data-vl="app"        → no hacemos nada: manda tu clase de siempre (p. ej. .vidrio)
+
+  Medido en la referencia (app del tiempo, 1 px CSS = 1,44 px de captura):
+    - desenfoque gaussiano σ ≈ 4,3 px CSS, uniforme; nada de escarcha ni grano;
+    - brillo y saturación iguales dentro y fuera: sin velo ni tinte;
+    - canto: línea de 1 px gris claro semiopaca (aclara sobre lo oscuro y oscurece
+      un poco sobre lo muy claro), más marcada arriba que en los lados;
+    - el texto es blanco puro y se lee gracias a «humo»: un oscurecido suave SOLO
+      detrás del texto y de los botones (negro al 22–26 %, borde difuso de 2–3 px).
+    En las hojas va aún más suave (6–8 %), por decisión de diseño.
+  Ojo: nada de mix-blend-mode en hijos o pseudo-elementos: dentro de un elemento con
+  backdrop-filter se mezclan con transparente y salen como un velo gris.
+*/
+
+.vidrio-liquido {
+  /* ---- Valores para ajustar ---- */
+  /* σ del desenfoque. En la referencia es 4,3 px CSS para un panel de 227 px (≈ 1,9 % del
+     ancho). Con la escena a pantalla grande las formas son más grandes: crece con el ancho
+     (0,6 vw) entre 6 px (móvil) y 12 px. */
+  --vl-blur: clamp(6px, 0.6vw, 12px);
+  /* Canto: color y opacidad de la línea de 1 px (lados, extra arriba, extra abajo). */
+  --vl-canto: 170, 170, 170;
+  --vl-canto-a: 0.45;
+  --vl-canto-arriba: 0.65;
+  --vl-canto-abajo: 0.3;
+  /* Humo detrás del texto y los botones: la única zona que oscurece. */
+  --vl-humo: rgba(0, 0, 0, 0.08);
+  --vl-humo-borde: 3px; /* lo difuso del borde del humo */
+  --vl-humo-texto: rgba(0, 0, 0, 0.06); /* detrás de títulos y párrafos (sin caja propia) */
+  --vl-humo-texto-borde: 10px;
+  --vl-texto: #ffffff;
+  --vl-texto-2: #ffffff;
+  --vl-linea: rgba(255, 255, 255, 0.22); /* filo de botones y separadores */
+  --vl-activo: rgba(255, 255, 255, 0.2); /* botón elegido: más relleno de luz (no lleva borde) */
+  /* Sin halo en la letra (Sebastián: «casi nada de oscuro»). Si hiciera falta para leer sobre
+     una lámpara: 0 0 2px rgba(0, 0, 0, 0.5), 0 0 6px rgba(0, 0, 0, 0.36). */
+  --vl-sombra-texto: none;
+  /* Compatibilidad con la primera versión: ya no se usan. */
+  --vl-tinte: transparent;
+  --vl-velo: transparent;
+  --vl-brillo: 0;
+}
+
+/* En claro (Arena, Clásico) el mismo humo casi nulo: se prefiere el vidrio limpio a la
+   legibilidad máxima (contraste medido en README-liso.md). Para subirlo, solo aquí. */
+.app[data-scheme='light'] .vidrio-liquido {
+  --vl-humo: rgba(0, 0, 0, 0.08);
+  --vl-humo-texto: rgba(0, 0, 0, 0.06);
+}
+
+.vidrio-liquido[data-vl='refraccion'],
+.vidrio-liquido[data-vl='desenfoque'] {
+  background: none;
+  border-color: transparent;
+  color: var(--vl-texto);
+  text-shadow: var(--vl-sombra-texto);
+  -webkit-backdrop-filter: blur(var(--vl-blur));
+  backdrop-filter: blur(var(--vl-blur));
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--vl-canto), var(--vl-canto-a)),
+    inset 0 1px 0 rgba(var(--vl-canto), var(--vl-canto-arriba)),
+    inset 0 -1px 0 rgba(var(--vl-canto), var(--vl-canto-abajo)),
+    0 18px 50px rgba(0, 0, 0, 0.18);
+}
+
+/* Opción «vidrio grueso» (hoja.ts › DISTORSION): Chromium dobla el fondo en el canto con el
+   filtro SVG y luego desenfoca. Mientras la hoja entra o sale (data-vl-mov) va sin filtro. */
+.vidrio-liquido[data-vl='refraccion'] {
+  backdrop-filter: var(--vl-filtro, ) blur(var(--vl-blur));
+}
+
+.vidrio-liquido[data-vl='refraccion'][data-vl-mov] {
+  backdrop-filter: blur(var(--vl-blur));
+}
+
+/* Botones: solo un relleno muy ligero, SIN borde (ni línea, ni filo interior, ni sombra que
+   haga de borde). El elegido se distingue por más relleno de luz y por el peso de la letra. */
+.vidrio-liquido[data-vl] .control {
+  border: 0;
+  background: var(--vl-humo);
+  box-shadow: none;
+  color: var(--vl-texto);
+  text-shadow: var(--vl-sombra-texto);
+}
+
+.vidrio-liquido[data-vl] .control:hover {
+  background: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)), var(--vl-humo);
+}
+
+.vidrio-liquido[data-vl] .control[aria-checked='true'],
+.vidrio-liquido[data-vl] .control[aria-pressed='true'] {
+  border: 0;
+  background: linear-gradient(var(--vl-activo), var(--vl-activo)), var(--vl-humo);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.vidrio-liquido[data-vl] .control:focus-visible {
+  outline-color: var(--vl-texto);
+}
+
+.vidrio-liquido[data-vl] .secundario {
+  color: var(--vl-texto-2);
+}
+
+.vidrio-liquido[data-vl] svg {
+  filter: none;
+}
+
+/*
+  Humo detrás de un bloque de texto sin caja propia (título, párrafo, palabra de la pausa).
+  Clase .vl-humo para lo nuevo; las hojas de hoy van por selector para no tocar sus TSX.
+  Pseudo-elemento con z-index -1: queda bajo el texto y sobre el vidrio (backdrop-filter
+  hace de la hoja su propio contexto de apilamiento). Borde muy difuso, sin caja visible.
+*/
+.vidrio-liquido[data-vl] :is(.vl-humo, .sheet-head h2, .banner > p, .app-promo-text) {
+  position: relative;
+}
+
+.vidrio-liquido[data-vl] :is(.vl-humo, .sheet-head h2, .banner > p, .app-promo-text, .pause-word, .pause-hint)::before {
+  content: '';
+  position: absolute;
+  inset: -0.3em -0.5em;
+  z-index: -1;
+  border-radius: 0.9em;
+  background: var(--vl-humo-texto);
+  box-shadow: 0 0 var(--vl-humo-texto-borde) calc(var(--vl-humo-texto-borde) / 2) var(--vl-humo-texto);
+  pointer-events: none;
+}
+
+/* Menos transparencias: más desenfoque y más humo. Sigue sin velo en el panel. */
+@media (prefers-reduced-transparency: reduce) {
+  .vidrio-liquido {
+    --vl-blur: 24px;
+    --vl-humo: rgba(0, 0, 0, 0.5);
+    --vl-humo-texto: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Sin backdrop-filter (navegadores muy viejos): panel oscuro, para que el blanco se lea. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vidrio-liquido[data-vl] {
+    background: rgba(0, 0, 0, 0.62);
+  }
+}

@@ -12,6 +12,7 @@ export type ErrorValidacion = {
   fichero: "A" | "B" | null
   fila: number | null
   columna: string | null
+  identificador?: string | null
 }
 
 export type Decision =
@@ -152,6 +153,7 @@ export type FicheroUi = {
   filasDatos: number
   errores: ErrorValidacion[]
   mapeo: Mapeo
+  codificacion: string
 }
 
 export type Filtro =
